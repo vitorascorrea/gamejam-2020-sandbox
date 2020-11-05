@@ -4,6 +4,7 @@ export default class GridWorldScene extends Phaser.Scene {
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys
   private player?: Phaser.GameObjects.Sprite
   private runKey?: Phaser.Input.Keyboard.Key;
+  private playerBody?: Phaser.Physics.Arcade.Body;
 
   constructor() {
     super('gamejam2020');
@@ -21,8 +22,9 @@ export default class GridWorldScene extends Phaser.Scene {
 
   create() {
     this.player = this.physics.add.sprite(400, 400, 'tiles', 54);
+    this.playerBody = this.player.body.gameObject;
     this.createPlayerAnims();
-    this.player.body.gameObject.setCollideWorldBounds(true);
+    this.playerBody?.setCollideWorldBounds(true);
   }
 
   createPlayerAnims() {
@@ -92,24 +94,24 @@ export default class GridWorldScene extends Phaser.Scene {
 
     if (this.cursors.left?.isDown) {
       this.player.anims.play('left', true);
-      this.player.body.gameObject.setVelocityX(-1 * velocity);
-      this.player.body.gameObject.setVelocityY(0);
+      this.playerBody?.setVelocityX(-1 * velocity);
+      this.playerBody?.setVelocityY(0);
     } else if (this.cursors.right?.isDown) {
       this.player.anims.play('right', true);
-      this.player.body.gameObject.setVelocityX(velocity);
-      this.player.body.gameObject.setVelocityY(0);
+      this.playerBody?.setVelocityX(velocity);
+      this.playerBody?.setVelocityY(0);
     } else if (this.cursors.down?.isDown) {
       this.player.anims.play('down', true);
-      this.player.body.gameObject.setVelocityY(velocity);
-      this.player.body.gameObject.setVelocityX(0);
+      this.playerBody?.setVelocityY(velocity);
+      this.playerBody?.setVelocityX(0);
     } else if (this.cursors.up?.isDown) {
       this.player.anims.play('up', true);
-      this.player.body.gameObject.setVelocityY(-1 * velocity);
-      this.player.body.gameObject.setVelocityX(0);
+      this.playerBody?.setVelocityY(-1 * velocity);
+      this.playerBody?.setVelocityX(0);
     } else if (this.player?.anims.currentAnim) {
       const key = this.player?.anims.currentAnim?.key;
       this.player.anims.play('idle-' + key);
-      this.player.body.gameObject.setVelocity(0);
+      this.playerBody?.setVelocity(0);
     }
   }
 }
