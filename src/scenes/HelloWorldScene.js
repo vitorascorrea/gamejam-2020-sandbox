@@ -9,8 +9,9 @@ export default class HelloWorldScene extends Phaser.Scene {
     this.stars = null;
     this.score = 0;
     this.scoreText = null;
-    this.bombs = null
+    this.bombs = null;
     this.jumpCount = 0;
+    this.canJump = true;
   }
 
   preload() {
@@ -108,6 +109,23 @@ export default class HelloWorldScene extends Phaser.Scene {
     // }, null, this);
   }
 
+  doubleJump() {
+    if (this.cursors.up.isDown && this.canJump) {
+      this.jumpCount += 1;
+      this.canJump = false
+      this.player.setVelocityY(-430);
+    }
+
+    if (this.player.body.touching.down) {
+      this.jumpCount = 0;
+      this.canJump = true
+    }
+
+    if (this.cursors.up.isUp && this.jumpCount <= 1) {
+      this.canJump = true
+    }
+  }
+
   update() {
     if (this.cursors) {
       if (this.cursors.left.isDown) {
@@ -121,16 +139,7 @@ export default class HelloWorldScene extends Phaser.Scene {
         this.player.anims.play('turn');
       }
 
-      const canJump = this.player.body.touching.down || this.jumpCount < 2;
-
-      if (this.cursors.up.isDown && canJump) {
-        this.jumpCount += 1;
-        this.player.setVelocityY(-430);
-      }
-
-      if (this.player.body.touching.down) {
-        this.jumpCount = 0;
-      }
+      this.doubleJump()
     }
   }
 }
