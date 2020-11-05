@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 
-export default class HelloWorldScene extends Phaser.Scene {
+export class HelloWorldScene extends Phaser.Scene {
   platforms: any;
   player: any;
   cursors: any;

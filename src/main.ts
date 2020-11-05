@@ -1,18 +1,26 @@
 import Phaser from 'phaser'
 
-import HelloWorldScene from './scenes/HelloWorldScene'
+import { 
+	HelloWorldScene,
+	SokobanScene
+} from './scenes'
 
 const config: Phaser.Types.Core.GameConfig = {
-	type: Phaser.AUTO,
-	width: 800,
-	height: 600,
+	type: Phaser.WEBGL,
+	width: 320,
+	height: 320,
+	zoom: 2,
+	render: {
+		pixelArt: true,
+		antialias: false,
+	},
 	physics: {
 		default: 'arcade',
 		arcade: {
 			gravity: { y: 200 }
 		}
 	},
-	scene: [HelloWorldScene]
+	scene: [SokobanScene]
 }
 
 export default new Phaser.Game(config)
