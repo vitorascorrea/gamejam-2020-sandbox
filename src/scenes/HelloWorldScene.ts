@@ -9,7 +9,7 @@ export class HelloWorldScene extends Phaser.Scene {
   scoreText: any;
   bombs: any;
   jumpCount: number = 0;
-  canJump: boolean;
+  canJump: boolean = true;
 
   constructor() {
     super('gamejam2020');
