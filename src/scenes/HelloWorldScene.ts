@@ -1,17 +1,18 @@
 import Phaser from 'phaser'
 
 export default class HelloWorldScene extends Phaser.Scene {
+  platforms: any;
+  player: any;
+  cursors: any;
+  stars: any;
+  score: number = 0;
+  scoreText: any;
+  bombs: any;
+  jumpCount: number = 0;
+  canJump: boolean;
+
   constructor() {
-    super('hello-world');
-    this.platforms = null;
-    this.player = null;
-    this.cursors = null;
-    this.stars = null;
-    this.score = 0;
-    this.scoreText = null;
-    this.bombs = null;
-    this.jumpCount = 0;
-    this.canJump = true;
+    super('gamejam2020');
   }
 
   preload() {
