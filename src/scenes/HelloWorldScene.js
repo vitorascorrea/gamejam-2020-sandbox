@@ -65,48 +65,42 @@ export default class HelloWorldScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.platforms);
     this.cursors = this.input.keyboard.createCursorKeys();
 
-    // this.stars = this.physics.add.group({
-    //   key: 'star',
-    //   repeat: 11,
-    //   setXY: { x: 12, y: 0, stepX: 70 }
-    // });
+    this.stars = this.physics.add.group({
+      key: 'star',
+      repeat: 11,
+      setXY: { x: 12, y: 0, stepX: 70 }
+    });
 
-    // this.stars.children.iterate((child) => {
-    //   child.body.gameObject.setBounce(Phaser.Math.FloatBetween(0.4, 0.8));
-    // });
+    this.stars.children.iterate((child) => {
+      child.body.gameObject.setBounce(Phaser.Math.FloatBetween(0.4, 0.8));
+    });
 
-    // this.physics.add.collider(this.stars, this.platforms);
-    // this.physics.add.overlap(this.player, this.stars, (player, star) => {
-    //   star.body.gameObject.disableBody(true, true);
-    //   this.score += 10;
-    //   this.scoreText.setText('score: ' + this.score);
+    this.physics.add.collider(this.stars, this.platforms);
 
-    //   if (this.stars.countActive(true) === 0) {
-    //     this.stars.children.iterate(function (child) {
-    //       child.body.gameObject.enableBody(true, child.body.gameObject.x, 0, true, true);
-    //     });
+    this.scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
 
-    //     var x = (this.player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+    this.bombs = this.physics.add.group();
+    this.physics.add.collider(this.bombs, this.platforms);
 
-    //     var bomb = this.bombs.create(x, 16, 'bomb');
-    //     bomb.setBounce(1);
-    //     bomb.setCollideWorldBounds(true);
-    //     bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+    this.physics.add.overlap(this.player, this.stars, (player, star) => {
+      star.body.gameObject.disableBody(true, true);
+      this.score += 10;
+      this.scoreText.setText('score: ' + this.score);
 
-    //   }
+      if (this.stars.countActive(true) === 0) {
+        this.stars.children.iterate(function (child) {
+          child.body.gameObject.enableBody(true, child.body.gameObject.x, 0, true, true);
+        });
 
+        var x = (this.player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+        var bomb = this.bombs.create(x, 16, 'bomb');
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+      }
+    });
 
-    // }, null, this);
-
-    // this.scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
-
-    // this.bombs = this.physics.add.group();
-    // this.physics.add.collider(this.bombs, this.platforms);
-    // this.physics.add.collider(this.player, this.bombs, (player) => {
-    //   this.physics.pause();
-    //   player.body.gameObject.setTint(0xff0000);
-    //   player.body.gameObject.anims.play('turn');
-    // }, null, this);
+    this.physics.add.collider(this.player, this.bombs);
   }
 
   doubleJump() {
