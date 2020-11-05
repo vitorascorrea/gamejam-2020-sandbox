@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 
 import HelloWorldScene from './scenes/HelloWorldScene'
+import GridWorldScene from './scenes/GridWorldScene'
 
 const config: Phaser.Types.Core.GameConfig = {
 	type: Phaser.AUTO,
@@ -9,10 +10,10 @@ const config: Phaser.Types.Core.GameConfig = {
 	physics: {
 		default: 'arcade',
 		arcade: {
-			gravity: { y: 200 }
+			// gravity: { y: 200 }
 		}
 	},
-	scene: [HelloWorldScene]
+	scene: [GridWorldScene]
 }
 
 export default new Phaser.Game(config)
