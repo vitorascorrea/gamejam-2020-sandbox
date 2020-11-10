@@ -1,8 +1,10 @@
 import Phaser from 'phaser'
 
+const [ SCENE_WIDTH, SCENE_HEIGHT ] = [ 3000, 1200 ];
+
 export default class HelloWorldScene extends Phaser.Scene {
   platforms: any;
-  player: any;
+  player!: Phaser.Physics.Arcade.Sprite;
   cursors: any;
   stars: any;
   score: number = 0;
@@ -10,12 +12,27 @@ export default class HelloWorldScene extends Phaser.Scene {
   bombs: any;
   jumpCount: number = 0;
   canJump: boolean = true;
+  colidindoComAMerdaDoChao!: Phaser.Physics.Arcade.Collider;
+
+  private groundLayer?: Phaser.Tilemaps.StaticTilemapLayer
+  private colliderLayers?: Phaser.Tilemaps.StaticTilemapLayer
 
   constructor() {
     super('gamejam2020');
   }
 
   preload() {
+    this.load.tilemapTiledJSON('cave_tilemap', 'assets/platform/cave_tilemap.json')
+		this.load.spritesheet('brown_tile', 'assets/platform/brown_tile.png', {
+			frameWidth: 16,
+      startFrame: 0
+    })
+    
+		this.load.spritesheet('utils', 'assets/platform/utils.png', {
+			frameWidth: 16,
+      startFrame: 0
+    })
+    
     this.load.image('sky', 'assets/sky.png');
     this.load.image('ground', 'assets/platform.png');
     this.load.image('star', 'assets/star.png');
@@ -27,20 +44,25 @@ export default class HelloWorldScene extends Phaser.Scene {
   }
 
   create() {
-    this.add.image(400, 300, 'sky');
 
-    this.platforms = this.physics.add.staticGroup();
-    const ground = this.platforms.create(400, 568, 'ground');
+    const map = this.make.tilemap({ key: 'cave_tilemap' });
+    const tiles = map.addTilesetImage('brown_tile', 'brown_tile');
+    this.groundLayer = map.createStaticLayer('ground', tiles);
 
-    ground.setScale(2, 1).refreshBody();
-
-    this.platforms.create(600, 400, 'ground');
-    this.platforms.create(50, 250, 'ground');
-    this.platforms.create(750, 220, 'ground');
+    const collidersTile = map.addTilesetImage('utils', 'utils');
+    this.colliderLayers = map.createStaticLayer('colliders', collidersTile);
+    this.colliderLayers.setVisible(false);
 
     this.player = this.physics.add.sprite(100, 450, 'dude');
     this.player.setBounce(0.2);
     this.player.setCollideWorldBounds(true);
+
+    
+    this.colidindoComAMerdaDoChao = this.physics.add.collider(this.player, this.colliderLayers);
+
+    this.colliderLayers.setCollisionByProperty({ collides: true, collidesDown: true });
+    
+    this.colliderLayers.getTilesWithin().forEach((tile) => tile.collideDown = !tile.properties.collidesDown);
 
     this.anims.create({
       key: 'left',
@@ -101,7 +123,24 @@ export default class HelloWorldScene extends Phaser.Scene {
       }
     });
 
+    this.physics.world.setBounds(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+    this.cameras.main.setBounds(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+
     this.physics.add.collider(this.player, this.bombs);
+    this.cameras.main.startFollow(this.player, false, 0.5, 0.5, 0, 150);
+
+
+    // start collisions
+
+    //map.setCollisionBetween(1, 999, true, undefined, this.colliderLayers);
+
+
+    //this.colliderLayers.setCollision([0]);
+
+
+   // this.physics.add.collider(this.player, this.colliderLayers);
+
+
   }
 
   doubleJump() {
@@ -111,7 +150,7 @@ export default class HelloWorldScene extends Phaser.Scene {
       this.player.setVelocityY(-430);
     }
 
-    if (this.player.body.touching.down) {
+    if (this.colidindoComAMerdaDoChao.active) {
       this.jumpCount = 0;
       this.canJump = true
     }
