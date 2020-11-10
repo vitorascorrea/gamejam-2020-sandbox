@@ -6,7 +6,7 @@ import GridWorldScene from './scenes/GridWorldScene'
 const config: Phaser.Types.Core.GameConfig = {
 	type: Phaser.AUTO,
 	width: 800,
-  height: 600,
+  height: 400,
   zoom: 2,
 	physics: {
 		default: 'arcade',
