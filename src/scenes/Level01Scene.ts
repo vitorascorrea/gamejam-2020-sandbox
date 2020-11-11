@@ -44,10 +44,15 @@ export default class Level01Scene extends Phaser.Scene {
       startFrame: 0
     })
 
+    this.load.spritesheet('box1', 'assets/platform.png', {
+      frameWidth: 16,
+      startFrame: 0
+    })
+
     this.load.spritesheet('dude',
       'assets/dude.png',
       { frameWidth: 32, frameHeight: 48 }
-    );
+    )
   }
 
   create() {
@@ -61,17 +66,34 @@ export default class Level01Scene extends Phaser.Scene {
     this.collisionLayers = map.createStaticLayer('colliders', collidersTile);
     this.collisionLayers.setVisible(false);
 
-    this.collisionLayersPlayerCollider = this.physics.add.collider(this.player, this.collisionLayers, () => {
-      this.isPlayerCollidingWithCollisionLayers = true;
-    });
-
-    this.collisionLayers.setCollisionByProperty({ collides: true });
-    this.collisionLayers.getTilesWithin().forEach((tile) => {
+    this.collisionLayersPlayerCollider = this.physics.add.collider(this.player, this.collisionLayers, (player, tile: any) => {
       if (tile.properties.canDie) {
         tile.setCollisionCallback(() => {
           this.scene.restart();
         }, this);
       }
+      this.isPlayerCollidingWithCollisionLayers = true;
+    });
+
+    this.collisionLayers.setCollisionByProperty({ collides: true });
+
+    this.box1 = this.physics.add.sprite(270, 200, 'box1');
+    this.box1.setDrag(Infinity, 0);
+
+    this.collisionLayersBox1Collider = this.physics.add.collider(this.box1, this.collisionLayers, (box, tile: any) => {
+      if (tile.properties.canDie) {
+        tile.setCollisionCallback(() => {
+          box.body.gameObject.setX(50)
+          box.body.gameObject.setY(240)
+        }, this);
+      }
+
+      this.isBox1CollidingWithCollisionLayers = true;
+    });
+
+    this.playerBox1Collider = this.physics.add.collider(this.player, this.box1, (player, box) => {
+      this.isPlayerCollidingHorizontallyWithBox1 = this.player.body.touching.left || this.player.body.touching.right;
+      this.isPlayerCollidingVerticallyWithBox1 = this.player.body.touching.down;
     });
 
     this.createControls();
@@ -134,6 +156,56 @@ export default class Level01Scene extends Phaser.Scene {
     }
   }
 
+  checkBoxPushing() {
+    if (!this.box1.body.immovable) {
+      if ((this.cursors.right.isDown || this.cursors.left.isDown) && this.isPlayerCollidingHorizontallyWithBox1) {
+        if (this.cursors.right.isDown) {
+          this.physics.moveTo(this.box1, this.box1.x + 10, this.box1.y);
+        } else if (this.cursors.left.isDown) {
+          this.physics.moveTo(this.box1, this.box1.x - 10, this.box1.y);
+        }
+      }
+    }
+  }
+
+  checkScalePower() {
+    if (this.isPlayerCollidingHorizontallyWithBox1) {
+      if (this.aKey.isDown && this.box1.scale < 2) {
+        this.box1.setScale(2);
+      } else if (this.sKey.isDown && this.box1.scale >= 2) {
+        this.box1.setScale(1);
+      }
+
+      this.box1.setImmovable(this.box1.scale >= 2)
+    }
+  }
+
+  checkFloatingPower() {
+    if (this.isPlayerCollidingVerticallyWithBox1) {
+      if (this.dKey.isDown) this.box1.setVelocityY(-100);
+    }
+
+    if (this.isBox1CollidingWithCollisionLayers && this.dKey.isUp) {
+      this.box1.setVelocityY(0)
+    }
+  }
+
+  checkShotPower() {
+    if (this.isPlayerCollidingHorizontallyWithBox1 && this.wKey.isDown && !this.box1.body.immovable) {
+      const isPlayerRightOfTheBox = this.box1.body.x - this.player.body.x > 0;
+      this.box1.setDrag(0);
+      if (isPlayerRightOfTheBox) {
+        this.box1.setVelocityX(500);
+      } else {
+        this.box1.setVelocityX(-500);
+      }
+    }
+
+    if (Math.abs(this.box1.body.velocity.x) < 1) {
+      this.box1.setDrag(Infinity, 0);
+    }
+  }
+
   update() {
     if (this.cursors) {
       if (this.cursors.left.isDown) {
@@ -148,8 +220,15 @@ export default class Level01Scene extends Phaser.Scene {
       }
 
       this.checkJump()
+      this.checkBoxPushing()
+      this.checkScalePower()
+      this.checkFloatingPower()
+      this.checkShotPower()
 
       this.isPlayerCollidingWithCollisionLayers = false;
+      this.isPlayerCollidingHorizontallyWithBox1 = false;
+      this.isPlayerCollidingVerticallyWithBox1 = false;
+      this.isBox1CollidingWithCollisionLayers = false;
     }
   }
 }
