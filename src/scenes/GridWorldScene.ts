@@ -1,13 +1,13 @@
 import Phaser from 'phaser'
 
-export default class GridWorldScene extends Phaser.Scene {
+export class GridWorldScene extends Phaser.Scene {
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys
   private player?: Phaser.GameObjects.Sprite
   private runKey?: Phaser.Input.Keyboard.Key;
   private playerBody?: Phaser.Physics.Arcade.Body;
 
   constructor() {
-    super('gamejam2020');
+    super('grid-world');
   }
 
   preload() {

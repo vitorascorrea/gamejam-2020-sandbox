@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 
 const [ SCENE_WIDTH, SCENE_HEIGHT ] = [ 30, 20 ];
 
-export default class Level01Scene extends Phaser.Scene {
+export class Level01Scene extends Phaser.Scene {
   platforms: any;
   player!: Phaser.Physics.Arcade.Sprite;
   cursors: any;
@@ -28,7 +28,7 @@ export default class Level01Scene extends Phaser.Scene {
   wKey!: Phaser.Input.Keyboard.Key;
 
   constructor() {
-    super('gamejam2020');
+    super('level-01');
   }
 
   preload() {

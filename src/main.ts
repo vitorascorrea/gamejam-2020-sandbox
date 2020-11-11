@@ -1,8 +1,11 @@
 import Phaser from 'phaser'
 
-import HelloWorldScene from './scenes/HelloWorldScene'
-import GridWorldScene from './scenes/GridWorldScene'
-import Level01Scene from './scenes/Level01Scene'
+import {
+	MenuScene,
+	HelloWorldScene,
+	GridWorldScene,
+	Level01Scene
+} from './scenes'
 
 const config: Phaser.Types.Core.GameConfig = {
 	type: Phaser.AUTO,
@@ -19,7 +22,7 @@ const config: Phaser.Types.Core.GameConfig = {
 		pixelArt: true,
 		antialias: false,
 	},
-	scene: [Level01Scene]
+	scene: [ MenuScene, Level01Scene, HelloWorldScene, GridWorldScene ]
 }
 
 export default new Phaser.Game(config)
