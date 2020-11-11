@@ -2,12 +2,13 @@ import Phaser from 'phaser'
 
 import HelloWorldScene from './scenes/HelloWorldScene'
 import GridWorldScene from './scenes/GridWorldScene'
+import Level01Scene from './scenes/Level01Scene'
 
 const config: Phaser.Types.Core.GameConfig = {
 	type: Phaser.AUTO,
-	width: 800,
-  height: 400,
-  zoom: 2,
+	width: 400,
+	height: 320,
+	zoom: 2,
 	physics: {
 		default: 'arcade',
 		arcade: {
@@ -18,7 +19,7 @@ const config: Phaser.Types.Core.GameConfig = {
 		pixelArt: true,
 		antialias: false,
 	},
-	scene: [HelloWorldScene]
+	scene: [Level01Scene]
 }
 
 export default new Phaser.Game(config)
