@@ -78,6 +78,7 @@ export default class HelloWorldScene extends Phaser.Scene {
     this.collisionLayersBox1Collider = this.physics.add.collider(this.box1, this.collisionLayers, () => {
       this.isBox1CollidingWithCollisionLayers = true;
     });
+
     this.playerBox1Collider = this.physics.add.collider(this.player, this.box1, (player, box) => {
       this.isPlayerCollidingHorizontallyWithBox1 = this.player.body.touching.left || this.player.body.touching.right;
       this.isPlayerCollidingVerticallyWithBox1 = this.player.body.touching.down;
@@ -88,7 +89,6 @@ export default class HelloWorldScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
     this.cameras.main.setBounds(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
 
-    this.physics.add.collider(this.player, this.bombs);
     this.cameras.main.startFollow(this.player, false, 0.5, 0.5, 0, 150);
   }
 
