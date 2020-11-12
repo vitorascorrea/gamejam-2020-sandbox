@@ -1,4 +1,4 @@
-import Phaser from 'phaser'
+import Phaser, { GameObjects, Tilemaps } from 'phaser'
 
 const [ SCENE_WIDTH, SCENE_HEIGHT ] = [ 30, 20 ];
 
@@ -20,7 +20,9 @@ export default class Level01Scene extends Phaser.Scene {
   box1!: Phaser.Physics.Arcade.Sprite;
   fireElemental!: Phaser.Physics.Arcade.Sprite;
 
-  collisionLayers?: Phaser.Tilemaps.StaticTilemapLayer
+  map!: Phaser.Tilemaps.Tilemap;
+  collisionLayers!: Phaser.Tilemaps.StaticTilemapLayer;
+  groundLayers!: Phaser.Tilemaps.DynamicTilemapLayer;
   collisionLayersBox1Collider!: Phaser.Physics.Arcade.Collider;
   playerBox1Collider!: Phaser.Physics.Arcade.Collider;
   aKey!: Phaser.Input.Keyboard.Key;
@@ -60,25 +62,17 @@ export default class Level01Scene extends Phaser.Scene {
 
     this.load.spritesheet('fire_monster',
       'assets/fire_monster.png',
-      { frameWidth: 24, frameHeight: 24 }
+      { frameWidth: 32, frameHeight: 32 }
     )
   }
 
   create() {
+    this.createMap();
     this.createPlayer();
+    this.createSpikes();
     this.createFireElemental();
-    this.fireElemental.anims.play('walking')
-    this.fireElemental.setVelocityX(10);
 
-    const map = this.make.tilemap({ key: 'base_json' });
-    const tiles = map.addTilesetImage('ground', 'ground')
-    map.createStaticLayer('ground', tiles);
-
-    const collidersTile = map.addTilesetImage('utils', 'utils');
-    this.collisionLayers = map.createStaticLayer('colliders', collidersTile);
-    this.collisionLayers.setVisible(false);
-
-    this.collisionLayersPlayerCollider = this.physics.add.collider(this.player, this.collisionLayers, (player, tile: any) => {
+    this.collisionLayersPlayerCollider = this.physics.add.collider(this.player, this.collisionLayers!, (player, tile: any) => {
       if (tile.properties.canDie) {
         tile.setCollisionCallback(() => {
           this.scene.restart();
@@ -88,28 +82,6 @@ export default class Level01Scene extends Phaser.Scene {
     });
 
     this.collisionLayersFireElementalCollider = this.physics.add.collider(this.fireElemental, this.collisionLayers);
-
-    this.collisionLayers.setCollisionByProperty({ collides: true });
-    this.spikeGroup = this.physics.add.staticGroup();
-
-    // map.forEachTile((tile) => {
-    //   if (tile.properties.canDie) {
-    //     const x = tile.getCenterX();
-    //     const y = tile.getCenterY();
-    //     const spike = this.spikeGroup.create(x, y, "spike");
-
-    //     // The map has spike tiles that have been rotated in Tiled ("z" key), so parse out that angle
-    //     // to the correct body placement
-    //     spike.rotation = tile.rotation;
-    //     if (spike.angle === 0) spike.body.setSize(32, 6).setOffset(0, 26);
-    //     else if (spike.angle === -90) spike.body.setSize(6, 32).setOffset(26, 0);
-    //     else if (spike.angle === 90) spike.body.setSize(6, 32).setOffset(0, 0);
-
-    //     // And lastly, remove the spike tile from the layer
-    //     // this.collisionLayers.removeTileAt(tile.x, tile.y);
-    //   }
-    // })
-
     this.playerFireElementalCollider = this.physics.add.collider(this.player, this.fireElemental, () => {
       this.scene.restart();
     });
@@ -149,9 +121,21 @@ export default class Level01Scene extends Phaser.Scene {
     this.wKey = this.input.keyboard.addKey('W');
   }
 
+  createMap() {
+    this.map = this.make.tilemap({ key: 'base_json' });
+    const tiles = this.map.addTilesetImage('ground', 'ground');
+    this.groundLayers = this.map.createDynamicLayer('ground', tiles);
+
+    const collidersTile = this.map.addTilesetImage('utils', 'utils');
+    this.collisionLayers = this.map.createStaticLayer('colliders', collidersTile);
+    this.collisionLayers.setVisible(false);
+    this.collisionLayers.setCollisionByProperty({ collides: true });
+  }
+
   createPlayer() {
-    this.player = this.physics.add.sprite(15, 260, 'dude').setScale(0.5);
-    // this.player.setCollideWorldBounds(true);
+    const spawnPoint: any = this.map.findObject("objects", obj => obj.name === "spawnPoint");
+    this.player = this.physics.add.sprite(spawnPoint.x, spawnPoint.y, 'dude').setScale(0.5);
+    this.player.setSize(20, 40).setOffset(5, 10);
 
     this.anims.create({
       key: 'left',
@@ -176,18 +160,52 @@ export default class Level01Scene extends Phaser.Scene {
     this.player.setGravityY(400);
   }
 
+  createSpikes() {
+    this.spikeGroup = this.physics.add.staticGroup();
+    this.physics.add.collider(this.player, this.spikeGroup, () => {
+      this.scene.restart();
+    });
+
+    this.groundLayers.forEachTile((tile: Tilemaps.Tile) => {
+      if (tile.properties?.name === "spike") {
+        // A sprite has its origin at the center, so place the sprite at the center of the tile
+        const x = tile.getCenterX();
+        const y = tile.getCenterY();
+        const spike: Phaser.Physics.Arcade.Sprite = this.spikeGroup.create(x, y, '');
+        spike.setVisible(false);
+    
+        if (tile.properties?.direction === "left") { 
+          spike.body.setSize(6, 18);
+        }
+        else if (tile.properties?.direction === "right")  {
+          spike.body.setSize(6, 18);
+        }
+        else if (tile.properties?.direction === "up") { 
+          spike.body.setSize(18, 6);
+        }
+        else {
+          spike.body.setSize(18, 6);
+        }
+        // And lastly, remove the spike tile from the layer
+        //this.collisionLayers.removeTileAt(tile.x, tile.y);
+      }
+    });
+
+  }
+
   createFireElemental() {
     this.fireElemental = this.physics.add.sprite(15, 0, 'fire_monster');
-    // this.player.setCollideWorldBounds(true);
-
+    this.fireElemental.setSize(16, 16).setOffset(6, 16);
     this.anims.create({
       key: 'walking',
       frames: this.anims.generateFrameNumbers('fire_monster', { start: 0, end: 5 }),
       frameRate: 10,
       repeat: -1
     });
-
+  
     this.fireElemental.setGravityY(400);
+    this.fireElemental.anims.play('walking')
+    this.fireElemental.setVelocityX(10);
   }
 
   checkJump() {

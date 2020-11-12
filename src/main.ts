@@ -1,7 +1,5 @@
 import Phaser from 'phaser'
 
-import HelloWorldScene from './scenes/HelloWorldScene'
-import GridWorldScene from './scenes/GridWorldScene'
 import Level01Scene from './scenes/Level01Scene'
 
 const config: Phaser.Types.Core.GameConfig = {
@@ -12,6 +10,7 @@ const config: Phaser.Types.Core.GameConfig = {
 	physics: {
 		default: 'arcade',
 		arcade: {
+			debug: true,
 			gravity: { y: 400 }
 		}
   },
