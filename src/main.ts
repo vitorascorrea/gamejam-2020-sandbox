@@ -1,10 +1,11 @@
 import Phaser from 'phaser'
 
 import Level01Scene from './scenes/Level01Scene'
+import Level02Scene from './scenes/Level02Scene'
 
 const config: Phaser.Types.Core.GameConfig = {
 	type: Phaser.AUTO,
-	width: 400,
+	width: 480,
 	height: 320,
 	zoom: 2,
 	physics: {
@@ -18,7 +19,7 @@ const config: Phaser.Types.Core.GameConfig = {
 		pixelArt: true,
 		antialias: false,
 	},
-	scene: [Level01Scene]
+	scene: [Level02Scene]
 }
 
 export default new Phaser.Game(config)
