@@ -8,6 +8,8 @@ export default class BaseScene extends Phaser.Scene {
   player!: Phaser.Physics.Arcade.Sprite;
   cursors: any;
   canJump: boolean = true;
+  onWall: boolean = false;
+  wallJumpDirection: number = 0;
   collisionLayersPlayerCollider!: Phaser.Physics.Arcade.Collider;
   map!: Phaser.Tilemaps.Tilemap;
   collisionLayers!: Phaser.Tilemaps.StaticTilemapLayer;
@@ -24,6 +26,7 @@ export default class BaseScene extends Phaser.Scene {
   playerEnemiesCollider!: Phaser.Physics.Arcade.Collider;
   nextSceneKey: string | null;
   mapKey: string;
+  aKey!: Phaser.Input.Keyboard.Key;
 
   constructor(sceneKey: string, nextSceneKey: string | null, mapKey: string) {
     super({ key: sceneKey });
@@ -34,6 +37,7 @@ export default class BaseScene extends Phaser.Scene {
   preload() {
     this.load.tilemapTiledJSON('level_01', 'assets/levels/cave_level_01.json')
     this.load.tilemapTiledJSON('level_02', 'assets/levels/cave_level_02.json')
+    this.load.tilemapTiledJSON('wall_jumping_test', 'assets/levels/wall_jumping_test.json')
 
     this.load.spritesheet('ground', 'assets/levels/ground.png', {
       frameWidth: 16,
@@ -98,6 +102,7 @@ export default class BaseScene extends Phaser.Scene {
 
   createControls() {
     this.cursors = this.input.keyboard.createCursorKeys();
+    this.aKey = this.input.keyboard.addKey('A'); // wall hang key
   }
 
   createMap(key: string) {
@@ -193,9 +198,9 @@ export default class BaseScene extends Phaser.Scene {
 
     const spawnEnemies = () => {
       enemies.forEach((enemy: GameObjects.Shape) => {
-        new Enemy(this, 
+        new Enemy(this,
           enemy.x,
-          enemy.y, 
+          enemy.y,
           'fire_monster',
           this.enemiesGroup,
           enemy.rotation === 180 ? DirectionEnum.LEFT : DirectionEnum.RIGHT);
@@ -204,26 +209,33 @@ export default class BaseScene extends Phaser.Scene {
 
     spawnEnemies();
     this.time.addEvent({ delay: 10000, loop: true, callback: spawnEnemies, callbackScope: this});
-   
+
   }
 
   checkJump() {
-    if (this.cursors.up.isDown && this.canJump) {
-      this.canJump = false
-      this.player.setVelocityY(-270);
-    }
+    if (this.cursors.up.isDown && ((this.canJump && this.player.body.blocked.down) || this.onWall)) {
+      this.player.setVelocityY(-300);
 
-    if (this.cursors.up.isUp && !this.canJump && this.player.body.blocked.down) {
-      this.canJump = true
+      this.canJump = false;
+      this.onWall = false;
+    }
+  }
+
+  checkWallClimb() {
+    if (this.onWall && this.aKey.isDown) {
+      this.player.setVelocityY(0);
+      this.player.setGravityY(0);
+    } else {
+      this.player.setGravityY(400);
     }
   }
 
   update() {
     if (this.cursors) {
-      if (this.cursors.left.isDown) {
+      if (this.cursors.left.isDown && !this.onWall) {
         this.player.setVelocityX(-120);
         this.player.anims.play('left', true);
-      } else if (this.cursors.right.isDown) {
+      } else if (this.cursors.right.isDown && !this.onWall) {
         this.player.setVelocityX(120);
         this.player.anims.play('right', true);
       } else {
@@ -231,7 +243,10 @@ export default class BaseScene extends Phaser.Scene {
         this.player.anims.play('turn');
       }
 
-      this.checkJump()
+      this.canJump = this.player.body.blocked.down;
+      this.onWall = !this.player.body.blocked.down && (this.player.body.blocked.left || this.player.body.blocked.right);
+      this.checkJump();
+      this.checkWallClimb();
     }
   }
 }
