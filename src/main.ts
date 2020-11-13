@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 
-import Level01Scene from './scenes/Level01Scene'
-import Level02Scene from './scenes/Level02Scene'
+import Level01Scene from './scenes/cave/Level01Scene'
+import Level02Scene from './scenes/cave/Level02Scene'
 
 const config: Phaser.Types.Core.GameConfig = {
 	type: Phaser.AUTO,
@@ -12,14 +12,15 @@ const config: Phaser.Types.Core.GameConfig = {
 		default: 'arcade',
 		arcade: {
 			debug: true,
-			gravity: { y: 400 }
+			gravity: { y: 300 }
 		}
   },
   render: {
 		pixelArt: true,
 		antialias: false,
 	},
-	scene: [Level02Scene]
+	scene: [Level01Scene, Level02Scene]
+
 }
 
 export default new Phaser.Game(config)

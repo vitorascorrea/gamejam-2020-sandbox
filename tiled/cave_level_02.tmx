@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.4" tiledversion="1.4.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="2">
+<map version="1.4" tiledversion="1.4.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="3">
  <editorsettings>
-  <export target="../public/assets/levels/level02.json" format="json"/>
+  <export target="../public/assets/levels/cave_level_02.json" format="json"/>
  </editorsettings>
  <tileset firstgid="1" name="ground" tilewidth="16" tileheight="16" tilecount="322" columns="23">
   <image source="ground.png" trans="000000" width="368" height="224"/>
@@ -98,6 +98,9 @@
  </layer>
  <objectgroup id="4" name="objects">
   <object id="1" name="spawnPoint" x="12.4638" y="207.76">
+   <point/>
+  </object>
+  <object id="2" name="objectivePoint" x="467.88" y="217.292">
    <point/>
   </object>
  </objectgroup>

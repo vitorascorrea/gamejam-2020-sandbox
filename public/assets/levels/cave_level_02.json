@@ -4,7 +4,7 @@
      "export":
         {
          "format":"json",
-         "target":"level02.json"
+         "target":"cave_level_02.json"
         }
     },
  "height":20,
@@ -48,8 +48,20 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":12.4638141466383,
-                 "y":207.759789777913
+                 "x":12.4638,
+                 "y":207.76
+                }, 
+                {
+                 "height":0,
+                 "id":2,
+                 "name":"objectivePoint",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":467.879525403103,
+                 "y":217.292363857621
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -58,7 +70,7 @@
          "y":0
         }],
  "nextlayerid":5,
- "nextobjectid":2,
+ "nextobjectid":3,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.4.2",
