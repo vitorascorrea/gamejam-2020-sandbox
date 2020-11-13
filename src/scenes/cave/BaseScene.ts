@@ -1,4 +1,6 @@
 import Phaser, { GameObjects, Tilemaps } from 'phaser'
+import { DirectionEnum } from '~/enum';
+import { Enemy } from '~/actors/Enemy'
 
 const [ SCENE_WIDTH, SCENE_HEIGHT ] = [ 480, 320 ];
 
@@ -52,6 +54,7 @@ export default class BaseScene extends Phaser.Scene {
       'assets/fire_monster.png',
       { frameWidth: 32, frameHeight: 32 }
     )
+
   }
 
   create() {
@@ -76,7 +79,7 @@ export default class BaseScene extends Phaser.Scene {
     });
 
     this.collisionLayersEnemiesCollider = this.physics.add.collider(this.enemiesGroup, this.collisionLayers);
-    this.playerEnemiesCollider = this.physics.add.collider(this.player, this.enemiesGroup, () => {
+    this.playerEnemiesCollider = this.physics.add.collider(this.player, this.enemiesGroup, (e, b) => {
       this.scene.restart();
     });
 
@@ -148,16 +151,16 @@ export default class BaseScene extends Phaser.Scene {
         // A sprite has its origin at the center, so place the sprite at the center of the tile
         const x = tile.getCenterX();
         const y = tile.getCenterY();
-        const spike: Phaser.Physics.Arcade.Sprite = this.spikeGroup.create(x, y, '');
+        const spike: Phaser.Physics.Arcade.Sprite = this.spikeGroup.create(x, y);
         spike.setVisible(false);
 
-        if (tile.properties?.direction === "left") {
+        if (tile.properties.direction === "left") {
           spike.body.setSize(6, 18);
         }
-        else if (tile.properties?.direction === "right")  {
+        else if (tile.properties.direction === "right")  {
           spike.body.setSize(6, 18);
         }
-        else if (tile.properties?.direction === "up") {
+        else if (tile.properties.direction === "up") {
           spike.body.setSize(18, 6);
         }
         else {
@@ -174,24 +177,34 @@ export default class BaseScene extends Phaser.Scene {
     this.enemiesGroup = this.physics.add.group();
     const enemies: any = this.map.filterObjects('objects', o => o.name === 'enemy', this);
 
-    enemies.forEach((enemy: any) => {
-      const enemyFrame = 'fire_monster' // virá do Tiled
-      const enemySprite = this.physics.add.sprite(enemy.x, enemy.y, enemyFrame);
-      enemySprite.setSize(16, 16).setOffset(6, 16);
-
-      this.anims.create({
-        key: 'walking',
-        frames: this.anims.generateFrameNumbers(enemyFrame, { start: 0, end: 5 }),
-        frameRate: 10,
-        repeat: -1
-      });
-
-      this.enemiesGroup.add(enemySprite);
-      enemySprite.flipX = true;
-      enemySprite.setGravityY(400);
-      enemySprite.anims.play('walking');
-      enemySprite.setVelocityX(-10);
+    this.anims.create({
+      key: 'fire_monster_walking',
+      frames: this.anims.generateFrameNumbers('fire_monster', { start: 0, end: 5 }),
+      frameRate: 10,
+      repeat: -1
     });
+
+    this.anims.create({
+      key: 'fire_monster_dying',
+      frames: this.anims.generateFrameNumbers('fire_monster', { start: 33, end: 40 }),
+      frameRate: 10,
+      repeat: 1
+    });
+
+    const spawnEnemies = () => {
+      enemies.forEach((enemy: GameObjects.Shape) => {
+        new Enemy(this, 
+          enemy.x,
+          enemy.y, 
+          'fire_monster',
+          this.enemiesGroup,
+          enemy.rotation === 180 ? DirectionEnum.LEFT : DirectionEnum.RIGHT);
+      });
+    }
+
+    spawnEnemies();
+    this.time.addEvent({ delay: 10000, loop: true, callback: spawnEnemies, callbackScope: this});
+   
   }
 
   checkJump() {
