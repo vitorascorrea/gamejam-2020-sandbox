@@ -163,17 +163,19 @@ export default class BaseScene extends Phaser.Scene {
         const spike: Phaser.Physics.Arcade.Sprite = this.spikeGroup.create(x, y);
         spike.setVisible(false);
 
+        const [ SPIKE_WIDTH, SPIKE_HEIGHT ] = [ 12, 6];
+
         if (tile.properties.direction === "left") {
-          spike.body.setSize(6, 18);
+          spike.body.setSize(SPIKE_HEIGHT, SPIKE_WIDTH);
         }
         else if (tile.properties.direction === "right")  {
-          spike.body.setSize(6, 18);
+          spike.body.setSize(SPIKE_HEIGHT, SPIKE_WIDTH);
         }
         else if (tile.properties.direction === "up") {
-          spike.body.setSize(18, 6);
+          spike.body.setSize(SPIKE_WIDTH, SPIKE_HEIGHT);
         }
         else {
-          spike.body.setSize(18, 6);
+          spike.body.setSize(SPIKE_WIDTH, SPIKE_HEIGHT);
         }
       }
     });
