@@ -6,7 +6,7 @@
 		"start": "parcel src/index.html -p 8000",
 		"build": "parcel build src/index.html --out-dir dist",
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"lint": "eslint ./src --ext .js,.jsx,.ts,.tsx"
+		"lint": "eslint ./src --ext .js,.jsx,.ts,.tsx --fix"
 	},
 	"author": "KGV",
 	"license": "MIT",

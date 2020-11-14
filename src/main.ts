@@ -20,7 +20,7 @@ const config: Phaser.Types.Core.GameConfig = {
 		pixelArt: true,
 		antialias: false,
 	},
-	scene: [WallJumpScene, Level02Scene, Level01Scene]
+	scene: [Level01Scene]
 
 }
 

@@ -4,12 +4,14 @@ import { Enemy } from '~/actors/Enemy'
 
 const [ SCENE_WIDTH, SCENE_HEIGHT ] = [ 480, 320 ];
 
+const [ PLAYER_VELOCITY_Y, PLAYER_VELOCITY_X ] = [ -9, 100 ];
+
 export default class BaseScene extends Phaser.Scene {
   player!: Phaser.Physics.Arcade.Sprite;
-  cursors: any;
-  canJump: boolean = true;
-  onWall: boolean = false;
-  wallJumpDirection: number = 0;
+  canJump = true;
+  onWall = false;
+  wallJumpDirection = 0;
+  jumpTime = 0;
   collisionLayersPlayerCollider!: Phaser.Physics.Arcade.Collider;
   map!: Phaser.Tilemaps.Tilemap;
   collisionLayers!: Phaser.Tilemaps.StaticTilemapLayer;
@@ -26,7 +28,7 @@ export default class BaseScene extends Phaser.Scene {
   playerEnemiesCollider!: Phaser.Physics.Arcade.Collider;
   nextSceneKey: string | null;
   mapKey: string;
-  aKey!: Phaser.Input.Keyboard.Key;
+  keys!: Controls;
 
   constructor(sceneKey: string, nextSceneKey: string | null, mapKey: string) {
     super({ key: sceneKey });
@@ -34,7 +36,16 @@ export default class BaseScene extends Phaser.Scene {
     this.mapKey = mapKey;
   }
 
+  setupControls() {
+    this.keys = {
+      left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+      right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+      jump: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
+    }
+  }
+
   preload() {
+    this.setupControls();
     this.load.tilemapTiledJSON('level_01', 'assets/levels/cave_level_01.json')
     this.load.tilemapTiledJSON('level_02', 'assets/levels/cave_level_02.json')
     this.load.tilemapTiledJSON('wall_jumping_test', 'assets/levels/wall_jumping_test.json')
@@ -87,8 +98,6 @@ export default class BaseScene extends Phaser.Scene {
       this.scene.restart();
     });
 
-    this.createControls();
-
     this.physics.world.setBounds(0, 0, SCENE_WIDTH, SCENE_HEIGHT, true, true, false, true);
     this.cameras.main.setBounds(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
 
@@ -98,11 +107,6 @@ export default class BaseScene extends Phaser.Scene {
   createObjective() {
     const obj: any = this.map.findObject('objects', obj => obj.name === 'objectivePoint', this);
     this.objectivePoint = this.physics.add.sprite(obj.x, obj.y, '');
-  }
-
-  createControls() {
-    this.cursors = this.input.keyboard.createCursorKeys();
-    this.aKey = this.input.keyboard.addKey('A'); // wall hang key
   }
 
   createMap(key: string) {
@@ -171,8 +175,6 @@ export default class BaseScene extends Phaser.Scene {
         else {
           spike.body.setSize(18, 6);
         }
-        // And lastly, remove the spike tile from the layer
-        //this.collisionLayers.removeTileAt(tile.x, tile.y);
       }
     });
 
@@ -213,16 +215,26 @@ export default class BaseScene extends Phaser.Scene {
   }
 
   checkJump() {
-    if (this.cursors.up.isDown && ((this.canJump && this.player.body.blocked.down) || this.onWall)) {
-      this.player.setVelocityY(-300);
-
-      this.canJump = false;
-      this.onWall = false;
+    console.log(this.jumpTime)
+    const onGround = this.player.body.blocked.down;
+    if (this.keys.jump.isDown || (this.jumpTime < 0 && !onGround)) { // is jumping or is falling
+      if(this.jumpTime < 0) {
+        this.player.body.velocity.y += -this.jumpTime * PLAYER_VELOCITY_Y;
+        this.jumpTime++;
+      } else if(onGround) {
+        this.jumpTime = 7;
+        this.player.body.velocity.y += this.jumpTime * PLAYER_VELOCITY_Y;
+      } else if(this.jumpTime > 0) {
+        this.player.body.velocity.y += this.jumpTime * PLAYER_VELOCITY_Y;
+        this.jumpTime--;
+      }
+    } else {
+      this.jumpTime = 0;
     }
   }
 
   checkWallClimb() {
-    if (this.onWall && this.aKey.isDown) {
+    if (this.onWall && (this.keys.left.isDown || this.keys.right)) {
       this.player.setVelocityY(0);
       this.player.setGravityY(0);
     } else {
@@ -231,22 +243,20 @@ export default class BaseScene extends Phaser.Scene {
   }
 
   update() {
-    if (this.cursors) {
-      if (this.cursors.left.isDown && !this.onWall) {
-        this.player.setVelocityX(-120);
-        this.player.anims.play('left', true);
-      } else if (this.cursors.right.isDown && !this.onWall) {
-        this.player.setVelocityX(120);
-        this.player.anims.play('right', true);
-      } else {
-        this.player.setVelocityX(0);
-        this.player.anims.play('turn');
-      }
-
-      this.canJump = this.player.body.blocked.down;
-      this.onWall = !this.player.body.blocked.down && (this.player.body.blocked.left || this.player.body.blocked.right);
-      this.checkJump();
-      this.checkWallClimb();
+    if (this.keys.left.isDown && !this.onWall) {
+      this.player.body.velocity.x = -PLAYER_VELOCITY_X;
+      this.player.anims.play('left', true);
+    } else if (this.keys.right.isDown && !this.onWall) {
+      this.player.body.velocity.x = PLAYER_VELOCITY_X;
+      this.player.anims.play('right', true);
+    } else {
+      this.player.setVelocityX(0);
+      this.player.anims.play('turn');
     }
+
+    //this.canJump = this.player.body.blocked.down;
+    //this.onWall = !this.player.body.blocked.down && (this.player.body.blocked.left || this.player.body.blocked.right);
+    this.checkJump();
+   // this.checkWallClimb();
   }
 }
