@@ -211,15 +211,15 @@ export default class BaseScene extends Phaser.Scene {
       });
     }
 
-    spawnEnemies();
-    this.time.addEvent({ delay: 10000, loop: true, callback: spawnEnemies, callbackScope: this});
+    //spawnEnemies();
+    //this.time.addEvent({ delay: 10000, loop: true, callback: spawnEnemies, callbackScope: this});
 
   }
 
   checkJump() {
-    console.log(this.jumpTime)
     const onGround = this.player.body.blocked.down;
-    if (this.keys.jump.isDown || (this.jumpTime < 0 && !onGround)) { // is jumping or is falling
+    const onWall = this.player.body.blocked.right || this.player.body.blocked.left;
+    if (this.keys.jump.isDown || (this.jumpTime < 0 && !onGround && !onWall)) { // is jumping or is falling
       if(this.jumpTime < 0) {
         this.player.body.velocity.y += -this.jumpTime * PLAYER_VELOCITY_Y;
         this.jumpTime++;
