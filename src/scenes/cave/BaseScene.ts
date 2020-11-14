@@ -4,7 +4,9 @@ import { Enemy } from '~/actors/Enemy'
 
 const [ SCENE_WIDTH, SCENE_HEIGHT ] = [ 480, 320 ];
 
-const [ PLAYER_VELOCITY_Y, PLAYER_VELOCITY_X ] = [ -9, 100 ];
+const PLAYER_VELOCITY_X = 100;
+
+const [ PLAYER_JUMP_SPEED_X, PLAYER_JUMP_SPEED_Y ] = [ 10, -9 ];
 
 export default class BaseScene extends Phaser.Scene {
   player!: Phaser.Physics.Arcade.Sprite;
@@ -216,23 +218,26 @@ export default class BaseScene extends Phaser.Scene {
 
   }
 
+  jumped = false;
+
   checkJump() {
     const onGround = this.player.body.blocked.down;
-    const onWall = this.player.body.blocked.right || this.player.body.blocked.left;
-    if (this.keys.jump.isDown || (this.jumpTime < 0 && !onGround && !onWall)) { // is jumping or is falling
+    const jump = this.keys.jump.isDown
+    if(jump || (this.jumpTime < 0 && !onGround)) {
       if(this.jumpTime < 0) {
-        this.player.body.velocity.y += -this.jumpTime * PLAYER_VELOCITY_Y;
+        this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
         this.jumpTime++;
-      } else if(onGround) {
+      } else if (onGround) {
         this.jumpTime = 7;
-        this.player.body.velocity.y += this.jumpTime * PLAYER_VELOCITY_Y;
-      } else if(this.jumpTime > 0) {
-        this.player.body.velocity.y += this.jumpTime * PLAYER_VELOCITY_Y;
+        this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
+      } else if (this.jumpTime > 0) {
+        this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
         this.jumpTime--;
       }
     } else {
       this.jumpTime = 0;
     }
+
   }
 
   checkWallClimb() {
