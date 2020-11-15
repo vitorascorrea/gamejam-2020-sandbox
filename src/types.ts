@@ -1,5 +1,8 @@
 type Controls =  { 
-  left: Phaser.Input.Keyboard.Key, 
-  right: Phaser.Input.Keyboard.Key, 
-  jump: Phaser.Input.Keyboard.Key 
+  left: Phaser.Input.Keyboard.Key
+  right: Phaser.Input.Keyboard.Key
+  jump: Phaser.Input.Keyboard.Key
+  climb: Phaser.Input.Keyboard.Key
+  up: Phaser.Input.Keyboard.Key
+  down: Phaser.Input.Keyboard.Key
 };
