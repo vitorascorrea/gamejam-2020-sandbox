@@ -6,7 +6,7 @@ const [ SCENE_WIDTH, SCENE_HEIGHT ] = [ 480, 320 ];
 
 const PLAYER_VELOCITY_X = 100;
 
-const [ PLAYER_JUMP_SPEED_X, PLAYER_JUMP_SPEED_Y ] = [ 0.8, -0.5 ];
+const [ PLAYER_JUMP_SPEED_X, PLAYER_JUMP_SPEED_Y ] = [ 0.5, -0.5 ];
 
 export default class BaseScene extends Phaser.Scene {
   player!: Phaser.Physics.Arcade.Sprite;
@@ -43,6 +43,9 @@ export default class BaseScene extends Phaser.Scene {
       left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
       right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
       jump: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
+      climb: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
+      up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+      down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S)
     }
   }
 
@@ -73,8 +76,9 @@ export default class BaseScene extends Phaser.Scene {
     )
 
   }
-
+graphics;
   create() {
+    this.graphics = this.add.graphics({ fillStyle: { color: 0x2266aa } });
     this.createMap(this.mapKey);
     this.createPlayer();
     this.createSpikes();
@@ -213,12 +217,36 @@ export default class BaseScene extends Phaser.Scene {
 
   }
 
+  isClimbing = false;
+ 
+  checkSliding() {
+    this.onWall = Boolean(this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y)) && !this.onGround;
+    if(this.keys.climb.isUp || !this.onWall) {
+      if(this.isClimbing) {
+        this.player.body.gravity.y = 400;
+        this.isClimbing = false;
+      }
+    }
+    if(this.onWall && this.keys.climb.isDown) {
+      this.isClimbing = true;
+    }
+    if(this.isClimbing) {
+      this.player.body.gravity.y = 200;
+      if(this.keys.down.isDown) {
+        this.player.body.velocity.y = 100;
+      } else if(this.keys.up.isDown) {
+        this.player.body.velocity.y = -100;
+      } else {
+        this.player.body.velocity.y = 0;
+      }
+    }
+
+   
+  }
   xAcc = 0;
   checkJump() {
     const jumpDuration = this.keys.jump.getDuration();
     const jump = jumpDuration > this.delta && jumpDuration < this.delta * 10;
-    //console.log('jumpTime:', this.jumpTime)
-    //console.log('xAcc', this.xAcc)
     if (this.onGround) {
       this.xAcc = 0;
     } else if(Math.abs(this.xAcc) > 0) {
@@ -228,7 +256,6 @@ export default class BaseScene extends Phaser.Scene {
     if(jump || (this.jumpTime < 0 && !this.onGround && !this.onWall)) {
       this.player.anims.play('jumping');
       if (this.onGround) {
-        console.log('onGround')
         this.jumpTime = this.delta * 7;
         this.xAcc = 0;
         this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
@@ -249,22 +276,11 @@ export default class BaseScene extends Phaser.Scene {
 
   }
 
-  checkWallClimb() {
-    if (this.onWall && (this.keys.left.isDown || this.keys.right)) {
-      this.player.setVelocityY(0);
-      this.player.setGravityY(0);
-    } else {
-      this.player.setGravityY(400);
-    }
-  }
-
   facing = 1;
   delta = 0;
   update(time, delta) {
     super.update(time, delta);
     this.delta = delta;
-    //console.log('delta', delta);
-    
     this.onGround = this.player.body.blocked.down;
     this.player.flipX = this.facing == 1;
     if (this.xAcc === 0) {
@@ -285,11 +301,7 @@ export default class BaseScene extends Phaser.Scene {
         this.player.anims.play('idle');
       }
     }
-
-
-    //this.canJump = this.player.body.blocked.down;
-    this.onWall = this.player.body.blocked.left || this.player.body.blocked.right;
+    this.checkSliding();
     this.checkJump();
-   // this.checkWallClimb();
   }
 }
