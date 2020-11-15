@@ -6,7 +6,7 @@ const [ SCENE_WIDTH, SCENE_HEIGHT ] = [ 480, 320 ];
 
 const PLAYER_VELOCITY_X = 100;
 
-const [ PLAYER_JUMP_SPEED_X, PLAYER_JUMP_SPEED_Y ] = [ 5, -8.9 ];
+const [ PLAYER_JUMP_SPEED_X, PLAYER_JUMP_SPEED_Y ] = [ 0.8, -0.5 ];
 
 export default class BaseScene extends Phaser.Scene {
   player!: Phaser.Physics.Arcade.Sprite;
@@ -32,7 +32,6 @@ export default class BaseScene extends Phaser.Scene {
   nextSceneKey: string | null;
   mapKey: string;
   keys!: Controls;
-
   constructor(sceneKey: string, nextSceneKey: string | null, mapKey: string) {
     super({ key: sceneKey });
     this.nextSceneKey = nextSceneKey;
@@ -216,26 +215,36 @@ export default class BaseScene extends Phaser.Scene {
 
   xAcc = 0;
   checkJump() {
-    const jump = this.keys.jump.isDown
-    if(jump || (this.jumpTime === 0 && !this.onGround && !this.onWall)) {
+    const jumpDuration = this.keys.jump.getDuration();
+    const jump = jumpDuration > this.delta && jumpDuration < this.delta * 10;
+    //console.log('jumpTime:', this.jumpTime)
+    //console.log('xAcc', this.xAcc)
+    if (this.onGround) {
+      this.xAcc = 0;
+    } else if(Math.abs(this.xAcc) > 0) {
+      this.xAcc -= Math.sign(this.xAcc) * this.delta / 10
+    }
+
+    if(jump || (this.jumpTime < 0 && !this.onGround && !this.onWall)) {
       this.player.anims.play('jumping');
       if (this.onGround) {
-        this.jumpTime = 7;
+        console.log('onGround')
+        this.jumpTime = this.delta * 7;
         this.xAcc = 0;
         this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
-      } else if (this.onWall) {
-        this.jumpTime = 6;
+      } else if (this.onWall && Math.abs(this.xAcc) === 0) {
+        this.jumpTime = this.delta * 4;
         this.facing *= -1;
         this.xAcc = this.facing * PLAYER_JUMP_SPEED_X * this.jumpTime;
         this.player.body.velocity.y = -this.jumpTime * PLAYER_JUMP_SPEED_Y;
       } else if (this.jumpTime > 0) {
         this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
         this.player.body.velocity.x += this.xAcc;
-        this.jumpTime--;
+        this.jumpTime -= this.delta;
       }
     } else {
       this.jumpTime = 0;
-      this.xAcc = 0;
+     
     }
 
   }
@@ -250,7 +259,12 @@ export default class BaseScene extends Phaser.Scene {
   }
 
   facing = 1;
-  update() {
+  delta = 0;
+  update(time, delta) {
+    super.update(time, delta);
+    this.delta = delta;
+    //console.log('delta', delta);
+    
     this.onGround = this.player.body.blocked.down;
     this.player.flipX = this.facing == 1;
     if (this.xAcc === 0) {
