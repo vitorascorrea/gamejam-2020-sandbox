@@ -6,21 +6,24 @@ import WallJumpScene from './scenes/cave/WallJumpScene'
 
 const config: Phaser.Types.Core.GameConfig = {
 	type: Phaser.AUTO,
-	width: 480,
-	height: 320,
-	zoom: 2,
+	width: 1920 / 5,
+	height: 1080 / 5,
+	scale: {
+        mode: Phaser.Scale.ZOOM_2X,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    },
 	physics: {
 		default: 'arcade',
 		arcade: {
 			debug: true,
-			gravity: { y: 300 }
+			gravity: { y: 400 }
 		}
   },
   render: {
 		pixelArt: true,
 		antialias: false,
 	},
-	scene: [Level01Scene]
+	scene: [WallJumpScene]
 
 }
 

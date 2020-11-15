@@ -6,12 +6,13 @@ const [ SCENE_WIDTH, SCENE_HEIGHT ] = [ 480, 320 ];
 
 const PLAYER_VELOCITY_X = 100;
 
-const [ PLAYER_JUMP_SPEED_X, PLAYER_JUMP_SPEED_Y ] = [ 10, -9 ];
+const [ PLAYER_JUMP_SPEED_X, PLAYER_JUMP_SPEED_Y ] = [ 5, -8.9 ];
 
 export default class BaseScene extends Phaser.Scene {
   player!: Phaser.Physics.Arcade.Sprite;
   canJump = true;
   onWall = false;
+  onGround = false;
   wallJumpDirection = 0;
   jumpTime = 0;
   collisionLayersPlayerCollider!: Phaser.Physics.Arcade.Collider;
@@ -103,7 +104,7 @@ export default class BaseScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, SCENE_WIDTH, SCENE_HEIGHT, true, true, false, true);
     this.cameras.main.setBounds(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
 
-    this.cameras.main.startFollow(this.player, false, 0.5, 0.5, 0, 150);
+    this.cameras.main.startFollow(this.player, true, 0.1, 0.1, 0, 0);
   }
 
   createObjective() {
@@ -129,26 +130,24 @@ export default class BaseScene extends Phaser.Scene {
     this.player.setCollideWorldBounds(true);
 
     this.anims.create({
-      key: 'left',
+      key: 'walking',
       frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
       frameRate: 10,
       repeat: -1
     });
 
     this.anims.create({
-      key: 'turn',
-      frames: [{ key: 'dude', frame: 4 }],
-      frameRate: 20
+      key: 'jumping',
+      frames: [{ key: 'dude', frame: 1 }]
     });
 
     this.anims.create({
-      key: 'right',
-      frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
-      frameRate: 10,
-      repeat: -1
+      key: 'idle',
+      frames: [{ key: 'dude', frame: 0 }]
     });
 
     this.player.setGravityY(400);
+
   }
 
   createSpikes() {
@@ -169,14 +168,11 @@ export default class BaseScene extends Phaser.Scene {
 
         if (tile.properties.direction === "left") {
           spike.body.setSize(SPIKE_HEIGHT, SPIKE_WIDTH);
-        }
-        else if (tile.properties.direction === "right")  {
+        } else if (tile.properties.direction === "right")  {
           spike.body.setSize(SPIKE_HEIGHT, SPIKE_WIDTH);
-        }
-        else if (tile.properties.direction === "up") {
+        } else if (tile.properties.direction === "up") {
           spike.body.setSize(SPIKE_WIDTH, SPIKE_HEIGHT);
-        }
-        else {
+        } else {
           spike.body.setSize(SPIKE_WIDTH, SPIKE_HEIGHT);
         }
       }
@@ -218,24 +214,28 @@ export default class BaseScene extends Phaser.Scene {
 
   }
 
-  jumped = false;
-
+  xAcc = 0;
   checkJump() {
-    const onGround = this.player.body.blocked.down;
     const jump = this.keys.jump.isDown
-    if(jump || (this.jumpTime < 0 && !onGround)) {
-      if(this.jumpTime < 0) {
-        this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
-        this.jumpTime++;
-      } else if (onGround) {
+    if(jump || (this.jumpTime === 0 && !this.onGround && !this.onWall)) {
+      this.player.anims.play('jumping');
+      if (this.onGround) {
         this.jumpTime = 7;
+        this.xAcc = 0;
         this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
+      } else if (this.onWall) {
+        this.jumpTime = 6;
+        this.facing *= -1;
+        this.xAcc = this.facing * PLAYER_JUMP_SPEED_X * this.jumpTime;
+        this.player.body.velocity.y = -this.jumpTime * PLAYER_JUMP_SPEED_Y;
       } else if (this.jumpTime > 0) {
         this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
+        this.player.body.velocity.x += this.xAcc;
         this.jumpTime--;
       }
     } else {
       this.jumpTime = 0;
+      this.xAcc = 0;
     }
 
   }
@@ -249,20 +249,32 @@ export default class BaseScene extends Phaser.Scene {
     }
   }
 
+  facing = 1;
   update() {
-    if (this.keys.left.isDown && !this.onWall) {
-      this.player.body.velocity.x = -PLAYER_VELOCITY_X;
-      this.player.anims.play('left', true);
-    } else if (this.keys.right.isDown && !this.onWall) {
-      this.player.body.velocity.x = PLAYER_VELOCITY_X;
-      this.player.anims.play('right', true);
-    } else {
-      this.player.setVelocityX(0);
-      this.player.anims.play('turn');
+    this.onGround = this.player.body.blocked.down;
+    this.player.flipX = this.facing == 1;
+    if (this.xAcc === 0) {
+      if (this.keys.left.isDown) {
+        this.player.body.velocity.x = -PLAYER_VELOCITY_X;
+        this.facing = -1;
+        if(this.onGround) {
+          this.player.anims.play('walking', true);
+        }
+      } else if (this.keys.right.isDown) {
+        this.player.body.velocity.x = PLAYER_VELOCITY_X;
+        this.facing = 1;
+        if(this.onGround) {
+          this.player.anims.play('walking', true);
+        }
+      } else {
+        this.player.setVelocityX(0);
+        this.player.anims.play('idle');
+      }
     }
 
+
     //this.canJump = this.player.body.blocked.down;
-    //this.onWall = !this.player.body.blocked.down && (this.player.body.blocked.left || this.player.body.blocked.right);
+    this.onWall = this.player.body.blocked.left || this.player.body.blocked.right;
     this.checkJump();
    // this.checkWallClimb();
   }
