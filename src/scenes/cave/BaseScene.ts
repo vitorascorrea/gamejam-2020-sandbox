@@ -2,8 +2,6 @@ import Phaser, { GameObjects, Tilemaps } from 'phaser'
 import { DirectionEnum } from '~/enum';
 import { Enemy } from '~/actors/Enemy'
 
-const [ SCENE_WIDTH, SCENE_HEIGHT ] = [ 480, 320 ];
-
 const PLAYER_VELOCITY_X = 100;
 
 const [ PLAYER_JUMP_SPEED_X, PLAYER_JUMP_SPEED_Y ] = [ 0.5, -0.5 ];
@@ -29,13 +27,9 @@ export default class BaseScene extends Phaser.Scene {
   enemiesGroup!: Phaser.Physics.Arcade.Group;
   collisionLayersEnemiesCollider!: Phaser.Physics.Arcade.Collider;
   playerEnemiesCollider!: Phaser.Physics.Arcade.Collider;
-  nextSceneKey: string | null;
-  mapKey: string;
   keys!: Controls;
-  constructor(sceneKey: string, nextSceneKey: string | null, mapKey: string) {
+  constructor(sceneKey: string, protected nextSceneKey: string | null, protected mapKey: string) {
     super({ key: sceneKey });
-    this.nextSceneKey = nextSceneKey;
-    this.mapKey = mapKey;
   }
 
   setupControls() {
@@ -50,10 +44,8 @@ export default class BaseScene extends Phaser.Scene {
   }
 
   preload() {
+    this.load.tilemapTiledJSON(this.mapKey, `assets/levels/${this.mapKey}.json`)
     this.setupControls();
-    this.load.tilemapTiledJSON('level_01', 'assets/levels/cave_level_01.json')
-    this.load.tilemapTiledJSON('level_02', 'assets/levels/cave_level_02.json')
-    this.load.tilemapTiledJSON('wall_jumping_test', 'assets/levels/wall_jumping_test.json')
 
     this.load.spritesheet('ground', 'assets/levels/ground.png', {
       frameWidth: 16,
@@ -104,8 +96,8 @@ graphics;
       this.scene.restart();
     });
 
-    this.physics.world.setBounds(0, 0, SCENE_WIDTH, SCENE_HEIGHT, true, true, false, true);
-    this.cameras.main.setBounds(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+    this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels, true, true, false, true);
+    this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
 
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1, 0, 0);
   }
@@ -212,8 +204,8 @@ graphics;
       });
     }
 
-    //spawnEnemies();
-    //this.time.addEvent({ delay: 10000, loop: true, callback: spawnEnemies, callbackScope: this});
+    spawnEnemies();
+    this.time.addEvent({ delay: 10000, loop: true, callback: spawnEnemies, callbackScope: this});
 
   }
 
@@ -238,7 +230,7 @@ graphics;
       } else {
         this.player.body.velocity.y = 0;
       }
-    } else if (this.isSliding) {
+    } else if (this.onWall) {
       this.player.body.velocity.y = 50;
     }
   }
@@ -249,7 +241,7 @@ graphics;
     const jumpDuration = this.keys.jump.getDuration();
     
     const jump = jumpDuration > this.delta && jumpDuration < this.delta * 10;
-    if (this.onGround) {
+    if (this.onGround || this.onWall || this.isClimbing) {
       this.xAcc = 0;
       this.numberOfJumps = 0;
       this.timeSinceFirstJump = 0;
@@ -257,7 +249,7 @@ graphics;
       this.xAcc -= Math.sign(this.xAcc) * this.delta / 10
     }
     
-    const canJump = this.numberOfJumps === 1 &&  (this.time.now - this.timeSinceFirstJump) > this.delta *  10
+    const canJump = (this.numberOfJumps === 1 || (this.numberOfJumps === 0 && !this.onGround))  &&  (this.time.now - this.timeSinceFirstJump) > this.delta *  10
 
     if(jump && canJump) {
       this.player.body.velocity.y = 300 * PLAYER_JUMP_SPEED_Y;
@@ -298,7 +290,7 @@ graphics;
     this.delta = delta;
     this.onGround = this.player.body.blocked.down;
     this.player.flipX = this.facing == 1;
-    if (this.xAcc === 0) {
+    if (this.xAcc === 0 && !this.isClimbing) {
       if (this.keys.left.isDown) {
         this.player.body.velocity.x = -PLAYER_VELOCITY_X;
         this.facing = -1;

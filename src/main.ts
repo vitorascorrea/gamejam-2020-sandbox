@@ -1,8 +1,11 @@
 import Phaser from 'phaser'
 
-import Level01Scene from './scenes/cave/Level01Scene'
-import Level02Scene from './scenes/cave/Level02Scene'
-import WallJumpScene from './scenes/cave/WallJumpScene'
+import {
+  Level01Scene,
+  Level02Scene,
+  Level03Scene,
+  WallJumpScene
+} from './scenes/cave'
 
 const config: Phaser.Types.Core.GameConfig = {
 	type: Phaser.AUTO,
@@ -23,7 +26,7 @@ const config: Phaser.Types.Core.GameConfig = {
 		pixelArt: true,
 		antialias: false,
 	},
-	scene: [WallJumpScene]
+	scene: [Level03Scene]
 
 }
 
