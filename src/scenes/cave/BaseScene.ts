@@ -4,7 +4,7 @@ import { Enemy } from '~/actors/Enemy'
 
 const PLAYER_VELOCITY_X = 100;
 
-const [ PLAYER_JUMP_SPEED_X, PLAYER_JUMP_SPEED_Y ] = [ 0.5, -0.5 ];
+const [ PLAYER_JUMP_SPEED_X, PLAYER_JUMP_SPEED_Y ] = [ 0.5, -0.6 ];
 
 export default class BaseScene extends Phaser.Scene {
   player!: Phaser.Physics.Arcade.Sprite;
@@ -23,11 +23,19 @@ export default class BaseScene extends Phaser.Scene {
   objectivePoint!: GameObjects.GameObject;
   playerObjectiveCollider!: Phaser.Physics.Arcade.Collider;
   collisionLayersObjectivePointCollider!: Phaser.Physics.Arcade.Collider;
+  xAcc = 0;
+  numberOfJumps = 0;
+  timeSinceFirstJump = 0;
+  isClimbing = false;
+  isSliding = false;
+  facing = 1;
+  delta = 0;
 
   enemiesGroup!: Phaser.Physics.Arcade.Group;
   collisionLayersEnemiesCollider!: Phaser.Physics.Arcade.Collider;
   playerEnemiesCollider!: Phaser.Physics.Arcade.Collider;
   keys!: Controls;
+  graphics;
   constructor(sceneKey: string, protected nextSceneKey: string | null, protected mapKey: string) {
     super({ key: sceneKey });
   }
@@ -68,7 +76,7 @@ export default class BaseScene extends Phaser.Scene {
     )
 
   }
-graphics;
+
   create() {
     this.graphics = this.add.graphics({ fillStyle: { color: 0x2266aa } });
     this.createMap(this.mapKey);
@@ -208,9 +216,6 @@ graphics;
     this.time.addEvent({ delay: 10000, loop: true, callback: spawnEnemies, callbackScope: this});
 
   }
-
-  isClimbing = false;
-  isSliding = false;
  
   checkSliding() {
     this.isSliding = Boolean(this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y)) && !this.onGround;
@@ -234,9 +239,7 @@ graphics;
       this.player.body.velocity.y = 50;
     }
   }
-  xAcc = 0;
-  numberOfJumps = 0;
-  timeSinceFirstJump = 0;
+
   checkJump() {
     const jumpDuration = this.keys.jump.getDuration();
     
@@ -244,14 +247,20 @@ graphics;
     if (this.onGround || this.onWall || this.isClimbing) {
       this.xAcc = 0;
       this.numberOfJumps = 0;
-      this.timeSinceFirstJump = 0;
+      this.timeSinceFirstJump = -1;
     } else if(Math.abs(this.xAcc) > 0) {
       this.xAcc -= Math.sign(this.xAcc) * this.delta / 10
     }
-    
-    const canJump = (this.numberOfJumps === 1 || (this.numberOfJumps === 0 && !this.onGround))  &&  (this.time.now - this.timeSinceFirstJump) > this.delta *  10
 
-    if(jump && canJump) {
+    if(this.numberOfJumps === 1 && this.keys.jump.isUp) {
+      this.timeSinceFirstJump = this.time.now
+    }
+
+    const canDoubleJump = (this.numberOfJumps === 1 && this.timeSinceFirstJump > -1) ||
+      (this.numberOfJumps === 0 && !this.onGround)  &&
+      (this.time.now - this.timeSinceFirstJump) > this.delta 
+  
+    if(this.keys.jump.isDown && canDoubleJump) {
       this.player.body.velocity.y = 300 * PLAYER_JUMP_SPEED_Y;
       this.numberOfJumps++;
     }
@@ -262,9 +271,8 @@ graphics;
         this.jumpTime = this.delta * 7;
         this.xAcc = 0;
         this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
-        this.timeSinceFirstJump = this.time.now
         this.numberOfJumps++;
-        console.log('jump')
+        
       } else if (this.onWall || this.isClimbing && Math.abs(this.xAcc) === 0) {
         this.jumpTime = this.delta * 4;
         this.facing *= -1;
@@ -278,13 +286,10 @@ graphics;
       }
     } else {
       this.jumpTime = 0;
-     
     }
 
   }
 
-  facing = 1;
-  delta = 0;
   update(time, delta) {
     super.update(time, delta);
     this.delta = delta;
