@@ -177,6 +177,7 @@ export default class BaseScene extends Phaser.Scene {
           spike.body.setSize(SPIKE_WIDTH, SPIKE_HEIGHT);
         } else {
           spike.body.setSize(SPIKE_WIDTH, SPIKE_HEIGHT);
+          spike.body.y += 3;
         }
       }
     });
