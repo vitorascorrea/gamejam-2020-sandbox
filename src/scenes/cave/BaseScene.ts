@@ -124,8 +124,9 @@ export default class BaseScene extends Phaser.Scene {
 
     boxes.forEach((box: any) => {
       const spriteBox = this.moveableObjects.create(box.x, box.y, 'box');
-      // spriteBox.setDrag(200);
-      // spriteBox.setMass(box.properties.mass);
+      spriteBox.setDrag(200);
+      const massValue = box.properties.find(p => p.name === 'mass');
+      spriteBox.setMass(massValue?.value);
     });
 
     this.collisionLayersMoveableCollider = this.physics.add.collider(this.moveableObjects, this.collisionLayers, () => {
