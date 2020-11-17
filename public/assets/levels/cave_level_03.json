@@ -48,20 +48,26 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":601.333333333333,
-                 "y":181.333333333333
+                 "x":601.333,
+                 "y":181.333
                 }, 
                 {
                  "height":0,
                  "id":2,
-                 "name":"spawnPoint",
+                 "name":"box",
                  "point":true,
+                 "properties":[
+                        {
+                         "name":"mass",
+                         "type":"float",
+                         "value":1
+                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":21.030303030303,
-                 "y":66.2727272727273
+                 "x":58.3182797747644,
+                 "y":67.2288020455068
                 }, 
                 {
                  "gid":325,
@@ -84,8 +90,20 @@
                  "type":"",
                  "visible":true,
                  "width":16,
-                 "x":287.333333333333,
+                 "x":287.333,
                  "y":175
+                }, 
+                {
+                 "height":0,
+                 "id":5,
+                 "name":"spawnPoint",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":20.0781429556424,
+                 "y":67.8832452309814
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -94,7 +112,7 @@
          "y":0
         }],
  "nextlayerid":4,
- "nextobjectid":5,
+ "nextobjectid":6,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.4.2",

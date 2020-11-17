@@ -36,18 +36,28 @@ export default class BaseScene extends Phaser.Scene {
   playerEnemiesCollider!: Phaser.Physics.Arcade.Collider;
   keys!: Controls;
   graphics;
+  box1!: Phaser.Physics.Arcade.Sprite;
+  isMoveableCollidingWithCollisionLayers!: boolean;
+  isPlayerCollidingHorizontallyWithMoveable!: boolean;
+  isPlayerCollidingVerticallyWithMoveable!: boolean;
+  moveableObjects: any;
+  collisionLayersMoveableCollider!: Phaser.Physics.Arcade.Collider;
+  playerMoveableCollider!: Phaser.Physics.Arcade.Collider;
+
   constructor(sceneKey: string, protected nextSceneKey: string | null, protected mapKey: string) {
     super({ key: sceneKey });
   }
 
   setupControls() {
     this.keys = {
-      left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-      jump: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
-      climb: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
-      up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S)
+      up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
+      down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
+      left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
+      right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
+      jump: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+      climb: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+      pull: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+      push: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
     }
   }
 
@@ -75,6 +85,10 @@ export default class BaseScene extends Phaser.Scene {
       { frameWidth: 32, frameHeight: 32 }
     )
 
+    this.load.spritesheet('box', 'assets/platform.png', {
+      frameWidth: 16,
+      startFrame: 0
+    })
   }
 
   create() {
@@ -102,6 +116,25 @@ export default class BaseScene extends Phaser.Scene {
     this.collisionLayersEnemiesCollider = this.physics.add.collider(this.enemiesGroup, this.collisionLayers);
     this.playerEnemiesCollider = this.physics.add.collider(this.player, this.enemiesGroup, (e, b) => {
       this.scene.restart();
+    });
+
+    this.moveableObjects = this.physics.add.group();
+
+    const boxes = this.map.filterObjects('objects', o => o.name === 'box', this);
+
+    boxes.forEach((box: any) => {
+      const spriteBox = this.moveableObjects.create(box.x, box.y, 'box');
+      // spriteBox.setDrag(200);
+      // spriteBox.setMass(box.properties.mass);
+    });
+
+    this.collisionLayersMoveableCollider = this.physics.add.collider(this.moveableObjects, this.collisionLayers, () => {
+      this.isMoveableCollidingWithCollisionLayers = true;
+    });
+
+    this.playerMoveableCollider = this.physics.add.collider(this.player, this.moveableObjects, (player, box) => {
+      // this.isPlayerCollidingHorizontallyWithMoveable = this.player.body.touching.left || this.player.body.touching.right;
+      // this.isPlayerCollidingVerticallyWithMoveable = this.player.body.touching.down;
     });
 
     this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels, true, true, false, true);
@@ -217,7 +250,7 @@ export default class BaseScene extends Phaser.Scene {
     this.time.addEvent({ delay: 10000, loop: true, callback: spawnEnemies, callbackScope: this});
 
   }
- 
+
   checkSliding() {
     this.isSliding = Boolean(this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y)) && !this.onGround;
     if(this.keys.climb.isUp || !this.isSliding) {
@@ -243,7 +276,7 @@ export default class BaseScene extends Phaser.Scene {
 
   checkJump() {
     const jumpDuration = this.keys.jump.getDuration();
-    
+
     const jump = jumpDuration > this.delta && jumpDuration < this.delta * 10;
     if (this.onGround || this.onWall || this.isClimbing) {
       this.xAcc = 0;
@@ -259,13 +292,13 @@ export default class BaseScene extends Phaser.Scene {
 
     const canDoubleJump = (this.numberOfJumps === 1 && this.timeSinceFirstJump > -1) ||
       (this.numberOfJumps === 0 && !this.onGround)  &&
-      (this.time.now - this.timeSinceFirstJump) > this.delta 
-  
+      (this.time.now - this.timeSinceFirstJump) > this.delta
+
     if(this.keys.jump.isDown && canDoubleJump) {
       this.player.body.velocity.y = 300 * PLAYER_JUMP_SPEED_Y;
       this.numberOfJumps++;
     }
-    
+
     if(jump || (this.jumpTime < 0 && !this.onGround && !this.onWall)) {
       this.player.anims.play('jumping');
       if (this.onGround) {
@@ -273,7 +306,7 @@ export default class BaseScene extends Phaser.Scene {
         this.xAcc = 0;
         this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
         this.numberOfJumps++;
-        
+
       } else if (this.onWall || this.isClimbing && Math.abs(this.xAcc) === 0) {
         this.jumpTime = this.delta * 4;
         this.facing *= -1;
@@ -291,7 +324,39 @@ export default class BaseScene extends Phaser.Scene {
 
   }
 
-  update(time, delta) {
+  checkPull() {
+    if (this.keys.pull.isDown && this.keys.push.isUp) {
+      this.moveableObjects.children.iterate((object: Phaser.Physics.Arcade.Sprite) => {
+        const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, object.x, object.y);
+
+        if (distance < 100) {
+          if (object.body.mass > this.player.body.mass) {
+            this.physics.moveTo(this.player, object.x, object.y, 200, 400);
+          } else {
+            this.physics.moveTo(object, this.player.x, this.player.y, 200, 400);
+          }
+        }
+      })
+    }
+  }
+
+  checkPush() {
+    if (this.keys.push.isDown && this.keys.pull.isUp) {
+      this.moveableObjects.children.iterate((object: Phaser.Physics.Arcade.Sprite) => {
+        const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, object.x, object.y);
+
+        if (distance < 100) {
+          if (object.body.mass > this.player.body.mass) {
+            this.physics.moveTo(this.player, object.x, object.y, -200, -400);
+          } else {
+            this.physics.moveTo(object, this.player.x, this.player.y, -200, -400);
+          }
+        }
+      })
+    }
+  }
+
+  update(time: number, delta: number) {
     super.update(time, delta);
     this.delta = delta;
     this.onGround = this.player.body.blocked.down;
@@ -314,8 +379,11 @@ export default class BaseScene extends Phaser.Scene {
         this.player.anims.play('idle');
       }
     }
-    this.onWall = (this.player.body.blocked.left || this.player.body.blocked.right) && !this.onGround
+    this.onWall = (this.player.body.blocked.left || this.player.body.blocked.right) && !this.onGround;
+    // this.isPlayerCollidingVerticallyWithMoveable = false;
     this.checkSliding();
     this.checkJump();
+    this.checkPull();
+    this.checkPush();
   }
 }

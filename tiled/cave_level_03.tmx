@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.4" tiledversion="1.4.2" orientation="orthogonal" renderorder="right-down" width="39" height="39" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="5">
+<map version="1.4" tiledversion="1.4.2" orientation="orthogonal" renderorder="right-down" width="39" height="39" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="6">
  <editorsettings>
   <export target="../public/assets/levels/cave_level_03.json" format="json"/>
  </editorsettings>
@@ -124,10 +124,16 @@
   <object id="1" name="objectivePoint" x="601.333" y="181.333" rotation="180">
    <point/>
   </object>
-  <object id="2" name="spawnPoint" x="21.0303" y="66.2727">
+  <object id="2" name="box" x="58.3183" y="67.2288">
+   <properties>
+    <property name="mass" type="float" value="1"/>
+   </properties>
    <point/>
   </object>
   <object id="3" name="enemy" gid="325" x="528" y="288" width="16" height="16" rotation="180"/>
   <object id="4" name="enemy" gid="325" x="287.333" y="175" width="16" height="16" rotation="180"/>
+  <object id="5" name="spawnPoint" x="20.0781" y="67.8832">
+   <point/>
+  </object>
  </objectgroup>
 </map>
