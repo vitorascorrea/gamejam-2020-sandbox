@@ -275,10 +275,12 @@ export default class BaseScene extends Phaser.Scene {
     if (this.keys.left.isDown) {
       this.player.body.velocity.x = -PLAYER_VELOCITY_X;
       this.facing = -1;
+      this.player.flipX = false;
       this.player.anims.play('walking', true);
     } else if (this.keys.right.isDown) {
       this.player.body.velocity.x = PLAYER_VELOCITY_X;
       this.facing = 1;
+      this.player.flipX = true;
       this.player.anims.play('walking', true);
     } else if (this.player.body.blocked.down) {
       this.player.setVelocityX(0);
