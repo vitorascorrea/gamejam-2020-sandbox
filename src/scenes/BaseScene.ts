@@ -254,24 +254,33 @@ export default class BaseScene extends Phaser.Scene {
 
   checkSliding() {
     this.isSliding = Boolean(this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y)) && !this.onGround;
+    const onEdge = !this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y - this.player.height/2) 
+     && this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y + this.player.height/2) 
+     && !this.collisionLayers.getTileAtWorldXY(this.player.x, this.player.y + this.player.height)
+     
+     !this.onGround;
+    if(onEdge && this.keys.up.isDown) {
+      this.player.body.velocity.x = 50 * this.facing;
+      this.player.body.velocity.y = 0;
+    }
     if(this.keys.climb.isUp || !this.isSliding) {
       if(this.isClimbing) {
         this.isClimbing = false;
       }
     }
-    if(this.isSliding && this.keys.climb.isDown) {
+    if(this.isSliding && this.keys.climb.isDown || (onEdge && this.keys.climb.isDown)) {
       this.isClimbing = true;
     }
     if(this.isClimbing) {
       if(this.keys.down.isDown) {
-        this.player.body.velocity.y = 100;
+        this.player.body.velocity.y = 70;
       } else if(this.keys.up.isDown) {
-        this.player.body.velocity.y = -100;
+        this.player.body.velocity.y = -70;
       } else {
         this.player.body.velocity.y = 0;
       }
     } else if (this.onWall) {
-      this.player.body.velocity.y = 50;
+      this.player.body.velocity.y = 70;
     }
   }
 
@@ -280,11 +289,12 @@ export default class BaseScene extends Phaser.Scene {
 
     const jump = jumpDuration > this.delta && jumpDuration < this.delta * 10;
     if (this.onGround || this.onWall || this.isClimbing) {
-      this.xAcc = 0;
       this.numberOfJumps = 0;
       this.timeSinceFirstJump = -1;
-    } else if(Math.abs(this.xAcc) > 0) {
-      this.xAcc -= Math.sign(this.xAcc) * this.delta / 10
+    } 
+    
+    if(Math.abs(this.xAcc) > 0) {
+      this.xAcc *= 0.85;
     }
 
     if(this.numberOfJumps === 1 && this.keys.jump.isUp) {
@@ -304,17 +314,16 @@ export default class BaseScene extends Phaser.Scene {
       this.player.anims.play('jumping');
       if (this.onGround) {
         this.jumpTime = this.delta * 7;
-        this.xAcc = 0;
         this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
         this.numberOfJumps++;
 
-      } else if (this.onWall || this.isClimbing && Math.abs(this.xAcc) === 0) {
-        this.jumpTime = this.delta * 4;
+      } else if (this.isClimbing) {
         this.facing *= -1;
-        this.xAcc = this.facing * PLAYER_JUMP_SPEED_X * this.jumpTime;
-        this.player.body.velocity.y = -this.jumpTime * PLAYER_JUMP_SPEED_Y;
+        this.jumpTime = this.delta * 2;
+        this.xAcc = this.facing * PLAYER_VELOCITY_X * 1.6;
+        this.player.body.velocity.y = this.jumpTime * PLAYER_JUMP_SPEED_Y;
         this.numberOfJumps = 0;
-      } else if (this.jumpTime > 0) {
+      } else if (this.jumpTime > 0 && !this.isSliding && !this.isClimbing) {
         this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
         this.player.body.velocity.x += this.xAcc;
         this.jumpTime -= this.delta;
@@ -362,15 +371,18 @@ export default class BaseScene extends Phaser.Scene {
     this.delta = delta;
     this.onGround = this.player.body.blocked.down;
     this.player.flipX = this.facing == 1;
-    if (this.xAcc === 0 && !this.isClimbing) {
+    if (!this.isClimbing) {
       if (this.keys.left.isDown) {
-        this.player.body.velocity.x = -PLAYER_VELOCITY_X;
         this.facing = -1;
+        this.player.body.velocity.x = -(PLAYER_VELOCITY_X);
+        this.player.body.velocity.x += this.xAcc;
+
         if(this.onGround) {
           this.player.anims.play('walking', true);
         }
       } else if (this.keys.right.isDown) {
-        this.player.body.velocity.x = PLAYER_VELOCITY_X;
+        this.player.body.velocity.x = (PLAYER_VELOCITY_X);
+        this.player.body.velocity.x += this.xAcc;
         this.facing = 1;
         if(this.onGround) {
           this.player.anims.play('walking', true);
