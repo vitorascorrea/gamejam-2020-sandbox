@@ -15,7 +15,7 @@ export default class BaseScene extends Phaser.Scene {
   jumpTime = 0;
   collisionLayersPlayerCollider!: Phaser.Physics.Arcade.Collider;
   map!: Phaser.Tilemaps.Tilemap;
-  collisionLayers!: Phaser.Tilemaps.StaticTilemapLayer;
+  collisionLayers!: Phaser.Tilemaps.DynamicTilemapLayer;
   groundLayers!: Phaser.Tilemaps.DynamicTilemapLayer;
   collisionLayersBox1Collider!: Phaser.Physics.Arcade.Collider;
   playerBox1Collider!: Phaser.Physics.Arcade.Collider;
@@ -50,15 +50,14 @@ export default class BaseScene extends Phaser.Scene {
 
   setupControls() {
     this.keys = {
-      up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
-      down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
-      left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
-      right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
-      jump: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      climb: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-      pull: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      push: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+      up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+      down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+      left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+      right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+      toggleMode: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
     }
+
+    this.input.mouse.disableContextMenu();
   }
 
   preload() {
@@ -155,9 +154,27 @@ export default class BaseScene extends Phaser.Scene {
     this.groundLayers = this.map.createDynamicLayer('ground', tiles);
 
     const collidersTile = this.map.addTilesetImage('utils', 'utils');
-    this.collisionLayers = this.map.createStaticLayer('colliders', collidersTile);
-    this.collisionLayers.setVisible(false);
+    this.collisionLayers = this.map.createDynamicLayer('colliders', collidersTile);
+    // this.collisionLayers.setVisible(false);
     this.collisionLayers.setCollisionByProperty({ collides: true });
+
+    const sceneRef = this;
+    this.collisionLayers.setInteractive();
+    this.groundLayers.setInteractive();
+    this.collisionLayers.on('pointerdown', function (pointer: Phaser.Input.Pointer, x: number, y: number) {
+      // console.log(pointer);
+      // console.log(this);
+
+      const tile = sceneRef.map.getTileAtWorldXY(x, y);
+      const distance = Phaser.Math.Distance.Between(sceneRef.player.x, sceneRef.player.y, x, y);
+
+      if (distance < 100 && tile?.properties.collides) {
+        // ground and walls body mass is always bigger than the player
+        const multiplier = pointer.rightButtonDown() ? 1 : -1;
+        sceneRef.physics.moveTo(sceneRef.player, x, y, multiplier * 450, multiplier * 400);
+      }
+
+    });
   }
 
   createPlayer() {
@@ -183,7 +200,7 @@ export default class BaseScene extends Phaser.Scene {
       frames: [{ key: 'dude', frame: 0 }]
     });
 
-    this.player.setGravityY(400);
+    this.player.setGravityY(200);
 
   }
 
@@ -252,139 +269,20 @@ export default class BaseScene extends Phaser.Scene {
 
   }
 
-  checkSliding() {
-    this.isSliding = Boolean(this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y)) && !this.onGround;
-    if(this.keys.climb.isUp || !this.isSliding) {
-      if(this.isClimbing) {
-        this.isClimbing = false;
-      }
-    }
-    if(this.isSliding && this.keys.climb.isDown) {
-      this.isClimbing = true;
-    }
-    if(this.isClimbing) {
-      if(this.keys.down.isDown) {
-        this.player.body.velocity.y = 100;
-      } else if(this.keys.up.isDown) {
-        this.player.body.velocity.y = -100;
-      } else {
-        this.player.body.velocity.y = 0;
-      }
-    } else if (this.onWall) {
-      this.player.body.velocity.y = 50;
-    }
-  }
-
-  checkJump() {
-    const jumpDuration = this.keys.jump.getDuration();
-
-    const jump = jumpDuration > this.delta && jumpDuration < this.delta * 10;
-    if (this.onGround || this.onWall || this.isClimbing) {
-      this.xAcc = 0;
-      this.numberOfJumps = 0;
-      this.timeSinceFirstJump = -1;
-    } else if(Math.abs(this.xAcc) > 0) {
-      this.xAcc -= Math.sign(this.xAcc) * this.delta / 10
-    }
-
-    if(this.numberOfJumps === 1 && this.keys.jump.isUp) {
-      this.timeSinceFirstJump = this.time.now
-    }
-
-    const canDoubleJump = (this.numberOfJumps === 1 && this.timeSinceFirstJump > -1) ||
-      (this.numberOfJumps === 0 && !this.onGround)  &&
-      (this.time.now - this.timeSinceFirstJump) > this.delta
-
-    if(this.keys.jump.isDown && canDoubleJump) {
-      this.player.body.velocity.y = 300 * PLAYER_JUMP_SPEED_Y;
-      this.numberOfJumps++;
-    }
-
-    if(jump || (this.jumpTime < 0 && !this.onGround && !this.onWall)) {
-      this.player.anims.play('jumping');
-      if (this.onGround) {
-        this.jumpTime = this.delta * 7;
-        this.xAcc = 0;
-        this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
-        this.numberOfJumps++;
-
-      } else if (this.onWall || this.isClimbing && Math.abs(this.xAcc) === 0) {
-        this.jumpTime = this.delta * 4;
-        this.facing *= -1;
-        this.xAcc = this.facing * PLAYER_JUMP_SPEED_X * this.jumpTime;
-        this.player.body.velocity.y = -this.jumpTime * PLAYER_JUMP_SPEED_Y;
-        this.numberOfJumps = 0;
-      } else if (this.jumpTime > 0) {
-        this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
-        this.player.body.velocity.x += this.xAcc;
-        this.jumpTime -= this.delta;
-      }
-    } else {
-      this.jumpTime = 0;
-    }
-
-  }
-
-  checkPull() {
-    if (this.keys.pull.isDown && this.keys.push.isUp) {
-      this.moveableObjects.children.iterate((object: Phaser.Physics.Arcade.Sprite) => {
-        const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, object.x, object.y);
-
-        if (distance < 100) {
-          if (object.body.mass > this.player.body.mass) {
-            this.physics.moveTo(this.player, object.x, object.y, 200, 400);
-          } else {
-            this.physics.moveTo(object, this.player.x, this.player.y, 200, 400);
-          }
-        }
-      })
-    }
-  }
-
-  checkPush() {
-    if (this.keys.push.isDown && this.keys.pull.isUp) {
-      this.moveableObjects.children.iterate((object: Phaser.Physics.Arcade.Sprite) => {
-        const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, object.x, object.y);
-
-        if (distance < 100) {
-          if (object.body.mass > this.player.body.mass) {
-            this.physics.moveTo(this.player, object.x, object.y, -200, -400);
-          } else {
-            this.physics.moveTo(object, this.player.x, this.player.y, -200, -400);
-          }
-        }
-      })
-    }
-  }
-
   update(time: number, delta: number) {
     super.update(time, delta);
-    this.delta = delta;
-    this.onGround = this.player.body.blocked.down;
-    this.player.flipX = this.facing == 1;
-    if (this.xAcc === 0 && !this.isClimbing) {
-      if (this.keys.left.isDown) {
-        this.player.body.velocity.x = -PLAYER_VELOCITY_X;
-        this.facing = -1;
-        if(this.onGround) {
-          this.player.anims.play('walking', true);
-        }
-      } else if (this.keys.right.isDown) {
-        this.player.body.velocity.x = PLAYER_VELOCITY_X;
-        this.facing = 1;
-        if(this.onGround) {
-          this.player.anims.play('walking', true);
-        }
-      } else {
-        this.player.setVelocityX(0);
-        this.player.anims.play('idle');
-      }
+
+    if (this.keys.left.isDown) {
+      this.player.body.velocity.x = -PLAYER_VELOCITY_X;
+      this.facing = -1;
+      this.player.anims.play('walking', true);
+    } else if (this.keys.right.isDown) {
+      this.player.body.velocity.x = PLAYER_VELOCITY_X;
+      this.facing = 1;
+      this.player.anims.play('walking', true);
+    } else if (this.player.body.blocked.down) {
+      this.player.setVelocityX(0);
+      this.player.anims.play('idle');
     }
-    this.onWall = (this.player.body.blocked.left || this.player.body.blocked.right) && !this.onGround;
-    // this.isPlayerCollidingVerticallyWithMoveable = false;
-    this.checkSliding();
-    this.checkJump();
-    this.checkPull();
-    this.checkPush();
   }
 }

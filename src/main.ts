@@ -28,7 +28,7 @@ const config: Phaser.Types.Core.GameConfig = {
 		pixelArt: true,
 		antialias: false,
 	},
-	scene: [Jump01Scene, Jump02Scene, Jump03Scene]
+	scene: [WallJumpScene]
 
 }
 
