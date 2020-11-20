@@ -6,6 +6,10 @@ const PLAYER_VELOCITY_X = 100;
 
 const [ PLAYER_JUMP_SPEED_X, PLAYER_JUMP_SPEED_Y ] = [ 0.5, -0.6 ];
 
+const PLAYER_CLIMBING_SPEED = 70;
+
+const PLAYER_SLIDING_SPEED = 70;
+
 export default class BaseScene extends Phaser.Scene {
   player!: Phaser.Physics.Arcade.Sprite;
   canJump = true;
@@ -27,7 +31,7 @@ export default class BaseScene extends Phaser.Scene {
   numberOfJumps = 0;
   timeSinceFirstJump = 0;
   isClimbing = false;
-  isSliding = false;
+  mayClimb = false;
   facing = 1;
   delta = 0;
 
@@ -179,6 +183,13 @@ export default class BaseScene extends Phaser.Scene {
     });
 
     this.anims.create({
+      key: 'climbing_moving',
+      frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
+      frameRate: 10,
+      repeat: -1
+    });
+
+    this.anims.create({
       key: 'idle',
       frames: [{ key: 'dude', frame: 0 }]
     });
@@ -253,49 +264,59 @@ export default class BaseScene extends Phaser.Scene {
   }
 
   checkSliding() {
-    this.isSliding = Boolean(this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y)) && !this.onGround;
-    if(this.keys.climb.isUp || !this.isSliding) {
+    this.mayClimb = Boolean(this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y)) && !this.onGround;
+    const onEdge = !this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y - this.player.height/2) 
+     && this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y + this.player.height/2) 
+     && !this.collisionLayers.getTileAtWorldXY(this.player.x, this.player.y + (this.player.height / 2))
+     && !this.onGround;
+    if(onEdge && this.isClimbing) {
+      this.player.body.velocity.x = 50 * this.facing;
+      this.player.body.velocity.y = 0;
+    }
+    if(this.keys.climb.isUp || (!this.mayClimb && !onEdge) || this.keys.jump.isDown) {
+      this.keys.climb.reset()
       if(this.isClimbing) {
         this.isClimbing = false;
       }
     }
-    if(this.isSliding && this.keys.climb.isDown) {
+    if(this.mayClimb && this.keys.climb.isDown || (onEdge && this.keys.climb.isDown)) {
       this.isClimbing = true;
     }
     if(this.isClimbing) {
       if(this.keys.down.isDown) {
-        this.player.body.velocity.y = 100;
+        this.player.body.velocity.y = PLAYER_CLIMBING_SPEED;
       } else if(this.keys.up.isDown) {
-        this.player.body.velocity.y = -100;
+        this.player.body.velocity.y = -PLAYER_CLIMBING_SPEED;
       } else {
         this.player.body.velocity.y = 0;
       }
     } else if (this.onWall) {
-      this.player.body.velocity.y = 50;
+      this.player.body.velocity.y = PLAYER_SLIDING_SPEED;
     }
   }
 
   checkJump() {
     const jumpDuration = this.keys.jump.getDuration();
-
     const jump = jumpDuration > this.delta && jumpDuration < this.delta * 10;
     if (this.onGround || this.onWall || this.isClimbing) {
-      this.xAcc = 0;
       this.numberOfJumps = 0;
       this.timeSinceFirstJump = -1;
-    } else if(Math.abs(this.xAcc) > 0) {
-      this.xAcc -= Math.sign(this.xAcc) * this.delta / 10
+      this.xAcc = 0;
+    }
+    
+    if(Math.abs(this.xAcc) > 0) {
+      this.xAcc *= 0.85;
     }
 
     if(this.numberOfJumps === 1 && this.keys.jump.isUp) {
       this.timeSinceFirstJump = this.time.now
     }
-
     const canDoubleJump = (this.numberOfJumps === 1 && this.timeSinceFirstJump > -1) ||
       (this.numberOfJumps === 0 && !this.onGround)  &&
-      (this.time.now - this.timeSinceFirstJump) > this.delta
+      (this.time.now - this.timeSinceFirstJump) > this.delta &&
+      !this.mayClimb && !this.isClimbing
 
-    if(this.keys.jump.isDown && canDoubleJump) {
+    if(jump && canDoubleJump) {
       this.player.body.velocity.y = 300 * PLAYER_JUMP_SPEED_Y;
       this.numberOfJumps++;
     }
@@ -304,17 +325,14 @@ export default class BaseScene extends Phaser.Scene {
       this.player.anims.play('jumping');
       if (this.onGround) {
         this.jumpTime = this.delta * 7;
-        this.xAcc = 0;
         this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
         this.numberOfJumps++;
-
-      } else if (this.onWall || this.isClimbing && Math.abs(this.xAcc) === 0) {
-        this.jumpTime = this.delta * 4;
-        this.facing *= -1;
-        this.xAcc = this.facing * PLAYER_JUMP_SPEED_X * this.jumpTime;
-        this.player.body.velocity.y = -this.jumpTime * PLAYER_JUMP_SPEED_Y;
+      } else if (this.isClimbing) {
+        this.jumpTime = this.delta * 2;
+        this.xAcc = this.facing * PLAYER_VELOCITY_X * 1.6;
+        this.player.body.velocity.y = this.jumpTime * PLAYER_JUMP_SPEED_Y;
         this.numberOfJumps = 0;
-      } else if (this.jumpTime > 0) {
+      } else if (this.jumpTime > 0 && !this.isClimbing) {
         this.player.body.velocity.y += this.jumpTime * PLAYER_JUMP_SPEED_Y;
         this.player.body.velocity.x += this.xAcc;
         this.jumpTime -= this.delta;
@@ -361,17 +379,23 @@ export default class BaseScene extends Phaser.Scene {
     super.update(time, delta);
     this.delta = delta;
     this.onGround = this.player.body.blocked.down;
-    this.player.flipX = this.facing == 1;
-    if (this.xAcc === 0 && !this.isClimbing) {
+    this.onWall = (this.player.body.blocked.left || this.player.body.blocked.right) && !this.onGround;
+    this.checkSliding();
+    this.checkJump();
+    this.checkPull();
+    this.checkPush();
+    if (!this.isClimbing) {
       if (this.keys.left.isDown) {
-        this.player.body.velocity.x = -PLAYER_VELOCITY_X;
         this.facing = -1;
+        this.player.body.velocity.x = -(PLAYER_VELOCITY_X);
+        this.player.body.velocity.x += this.xAcc;
         if(this.onGround) {
           this.player.anims.play('walking', true);
         }
       } else if (this.keys.right.isDown) {
-        this.player.body.velocity.x = PLAYER_VELOCITY_X;
         this.facing = 1;
+        this.player.body.velocity.x = (PLAYER_VELOCITY_X);
+        this.player.body.velocity.x += this.xAcc;
         if(this.onGround) {
           this.player.anims.play('walking', true);
         }
@@ -380,11 +404,9 @@ export default class BaseScene extends Phaser.Scene {
         this.player.anims.play('idle');
       }
     }
-    this.onWall = (this.player.body.blocked.left || this.player.body.blocked.right) && !this.onGround;
+    this.player.flipX = this.facing == 1;
+
     // this.isPlayerCollidingVerticallyWithMoveable = false;
-    this.checkSliding();
-    this.checkJump();
-    this.checkPull();
-    this.checkPush();
+
   }
 }
