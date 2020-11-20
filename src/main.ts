@@ -1,12 +1,12 @@
 import Phaser from 'phaser'
 
 import {
-  	Level02Scene,
+  Level02Scene,
 	Level03Scene,
 	Jump01Scene,
 	Jump02Scene,
 	Jump03Scene,
-  	WallJumpScene
+  WallJumpScene
 } from './scenes'
 
 const config: Phaser.Types.Core.GameConfig = {
