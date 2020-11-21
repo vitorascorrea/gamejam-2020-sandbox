@@ -10,6 +10,8 @@ const PLAYER_CLIMBING_SPEED = 70;
 
 const PLAYER_SLIDING_SPEED = 70;
 
+const GRAVITY = 400;
+
 export default class BaseScene extends Phaser.Scene {
   player!: Phaser.Physics.Arcade.Sprite;
   canJump = true;
@@ -34,6 +36,7 @@ export default class BaseScene extends Phaser.Scene {
   mayClimb = false;
   facing = 1;
   delta = 0;
+  movingObjects!: Phaser.Physics.Arcade.Group;
 
   enemiesGroup!: Phaser.Physics.Arcade.Group;
   collisionLayersEnemiesCollider!: Phaser.Physics.Arcade.Collider;
@@ -102,6 +105,7 @@ export default class BaseScene extends Phaser.Scene {
     this.createSpikes();
     this.createObjective();
     this.createEnemies();
+    this.createMovingObject();
 
     this.collisionLayersPlayerCollider = this.physics.add.collider(this.player, this.collisionLayers!, (player, tile: any) => {
       if (tile.properties.canDie) {
@@ -153,6 +157,27 @@ export default class BaseScene extends Phaser.Scene {
     this.objectivePoint = this.physics.add.sprite(obj.x, obj.y, '');
   }
 
+  createMovingObject() {
+    const mapMovingObjects: any = this.map.filterObjects('objects', obj => obj.name === 'movingObject', this);
+    this.movingObjects = this.physics.add.group()
+
+
+    mapMovingObjects.forEach((obj: any) => {
+      const movObj: Phaser.Physics.Arcade.Sprite = this.movingObjects.create(obj.x, obj.y, 'ground', 6)
+      movObj.setData('properties', obj.properties)
+      movObj.setData('initialX', obj.x)
+      movObj.setData('initialY', obj.y)
+
+      movObj.setGravity(0, -GRAVITY)
+
+      const canDie = obj.properties.find(ob => ob.name === 'canDie')?.value
+
+      this.physics.add.collider(this.player, movObj, (_player, _colObj) => {
+        if (canDie) this.scene.restart()
+      })
+    })
+  }
+
   createMap(key: string) {
     this.map = this.make.tilemap({ key });
     const tiles = this.map.addTilesetImage('ground', 'ground');
@@ -194,7 +219,7 @@ export default class BaseScene extends Phaser.Scene {
       frames: [{ key: 'dude', frame: 0 }]
     });
 
-    this.player.setGravityY(400);
+    this.player.setGravityY(300);
 
   }
 
@@ -265,8 +290,8 @@ export default class BaseScene extends Phaser.Scene {
 
   checkSliding() {
     this.mayClimb = Boolean(this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y)) && !this.onGround;
-    const onEdge = !this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y - this.player.height/2) 
-     && this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y + this.player.height/2) 
+    const onEdge = !this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y - this.player.height/2)
+     && this.collisionLayers.getTileAtWorldXY(this.player.x + 10 * this.facing, this.player.y + this.player.height/2)
      && !this.collisionLayers.getTileAtWorldXY(this.player.x, this.player.y + (this.player.height / 2))
      && !this.onGround;
     if(onEdge && this.isClimbing) {
@@ -303,7 +328,7 @@ export default class BaseScene extends Phaser.Scene {
       this.timeSinceFirstJump = -1;
       this.xAcc = 0;
     }
-    
+
     if(Math.abs(this.xAcc) > 0) {
       this.xAcc *= 0.85;
     }
@@ -375,6 +400,45 @@ export default class BaseScene extends Phaser.Scene {
     }
   }
 
+  moveMoveableObjects() {
+    this.movingObjects.children.iterate((obj: any) => {
+      const axis = obj.getData('properties').find((prop) => prop.name === "moveAxis").value
+      const range = obj.getData('properties').find((prop) => prop.name === "moveRange").value * 16
+      let speed = obj.getData('properties').find((prop) => prop.name === "moveSpeed").value * 100
+
+      const initialX = obj.getData('initialX')
+      const initialY = obj.getData('initialY')
+      const maxX = initialX + range
+      const maxY = initialY + range
+      const currentX = obj.x
+      const currentY = obj.y
+
+      const reachedRightRange = currentX - initialX >= range
+      const reachedLeftRange = currentX <= initialX
+      const reachedUpRange = currentY <= initialY
+      const reachedDownRange = currentY - initialY >= range 
+
+
+      if (axis === 'x') {
+        if (reachedRightRange) {
+          this.physics.moveTo(obj, initialX, obj.y, speed);
+        }
+        
+        if (reachedLeftRange) {
+          this.physics.moveTo(obj, maxX, obj.y, speed);
+        }
+      } else if (axis === 'y') {
+        if (reachedUpRange) {
+          this.physics.moveTo(obj, obj.x, maxY, speed);
+        }
+        
+        if (reachedDownRange) {
+          this.physics.moveTo(obj, obj.x, initialY, speed);
+        }
+      }
+    })
+  }
+
   update(time: number, delta: number) {
     super.update(time, delta);
     this.delta = delta;
@@ -384,6 +448,7 @@ export default class BaseScene extends Phaser.Scene {
     this.checkJump();
     this.checkPull();
     this.checkPush();
+
     if (!this.isClimbing) {
       if (this.keys.left.isDown) {
         this.facing = -1;
@@ -405,6 +470,8 @@ export default class BaseScene extends Phaser.Scene {
       }
     }
     this.player.flipX = this.facing == 1;
+
+    this.moveMoveableObjects()
 
     // this.isPlayerCollidingVerticallyWithMoveable = false;
 
